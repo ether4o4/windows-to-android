@@ -1,0 +1,33 @@
+{
+  "name": "windows-to-android",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A Windows 11/12-style desktop environment that runs in the browser and packages for Android (PWA + Capacitor wrapper).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "verify": "tsc --noEmit && vitest run && vite build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vitest": "^2.0.5"
+  }
+}
