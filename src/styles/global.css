@@ -1,7 +1,4 @@
-:root {
-  --w-accent: #0a84ff;
-  font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
-}
+@import "./tokens.css";
 
 * {
   box-sizing: border-box;
@@ -16,17 +13,61 @@ body,
   overflow: hidden;
 }
 
+html {
+  font-family: var(--w-font);
+  font-size: 14px;
+  color: var(--w-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  background: #000;
+}
+
+/* The desktop fills the viewport; the wallpaper is painted as its background. */
 .desktop {
+  position: relative;
   height: 100%;
   width: 100%;
-  display: grid;
-  place-items: center;
-  background: #0a0a0a;
-  color: #fff;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  isolation: isolate;
+}
+
+/* Subtle Mica-style vignette over the wallpaper for depth. */
+.desktop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 120% at 50% 0%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  z-index: 0;
 }
 
 .desktop__boot {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
   font-size: 2rem;
   font-weight: 300;
   letter-spacing: 0.02em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+/* Shared focus ring, Fluent style. */
+:focus-visible {
+  outline: 2px solid var(--w-text);
+  outline-offset: 1px;
+  border-radius: var(--w-radius-sm);
 }
