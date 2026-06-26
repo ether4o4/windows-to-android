@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -58,6 +59,7 @@ fun StartMenu(
     apps: List<AppEntry>,
     onLaunch: (String) -> Unit,
     onCommandPrompt: () -> Unit,
+    onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
@@ -98,7 +100,15 @@ fun StartMenu(
                     StartTile(label = "Command Prompt", onClick = onCommandPrompt) {
                         Icon(
                             Icons.Filled.Terminal, null,
-                            tint = NsColor.AccentLight, modifier = Modifier.size(30.dp),
+                            tint = LauncherState.accent, modifier = Modifier.size(30.dp),
+                        )
+                    }
+                }
+                item {
+                    StartTile(label = "Settings", onClick = onOpenSettings) {
+                        Icon(
+                            Icons.Filled.Settings, null,
+                            tint = NsColor.Text, modifier = Modifier.size(30.dp),
                         )
                     }
                 }

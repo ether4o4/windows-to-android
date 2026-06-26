@@ -48,16 +48,20 @@ fun Taskbar(
     startActive: Boolean,
     quickActive: Boolean,
     notifActive: Boolean,
+    taskViewActive: Boolean,
+    widgetsActive: Boolean,
     onToggleStart: () -> Unit,
     onToggleQuick: () -> Unit,
     onToggleNotif: () -> Unit,
+    onToggleTaskView: () -> Unit,
+    onToggleWidgets: () -> Unit,
     onLaunch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(NsDim.TaskbarHeight)
+            .height(LauncherState.taskbarHeight)
             .background(NsColor.AcrylicTaskbar),
     ) {
         // Top hairline divider.
@@ -78,7 +82,7 @@ fun Taskbar(
                 .align(Alignment.CenterStart)
                 .padding(start = 6.dp)
                 .clip(RoundedCornerShape(NsDim.RadiusControl))
-                .clickable { /* Widgets board (Win+W) — backlog §2.1 step 8 */ }
+                .clickable(onClick = onToggleWidgets)
                 .padding(horizontal = 10.dp, vertical = 6.dp),
         )
 
@@ -91,7 +95,7 @@ fun Taskbar(
             TaskbarButton(active = startActive, onClick = onToggleStart) {
                 Icon(
                     Icons.Filled.GridView, "Start",
-                    tint = NsColor.AccentLight, modifier = Modifier.size(NsDim.TaskbarGlyph),
+                    tint = LauncherState.accent, modifier = Modifier.size(NsDim.TaskbarGlyph),
                 )
             }
             TaskbarButton(onClick = onToggleStart) {
@@ -100,13 +104,13 @@ fun Taskbar(
                     tint = NsColor.Text, modifier = Modifier.size(NsDim.TaskbarGlyph),
                 )
             }
-            TaskbarButton(onClick = { /* Task view — backlog §2.1 step 8 */ }) {
+            TaskbarButton(active = taskViewActive, onClick = onToggleTaskView) {
                 Icon(
                     Icons.Filled.ViewModule, "Task view",
                     tint = NsColor.Text, modifier = Modifier.size(NsDim.TaskbarGlyph),
                 )
             }
-            TaskbarButton(onClick = { /* Widgets — backlog §2.1 step 8 */ }) {
+            TaskbarButton(active = widgetsActive, onClick = onToggleWidgets) {
                 Icon(
                     Icons.Filled.Widgets, "Widgets",
                     tint = NsColor.Text, modifier = Modifier.size(NsDim.TaskbarGlyph),
@@ -158,7 +162,7 @@ private fun TaskbarButton(
                     .width(16.dp)
                     .height(3.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(NsColor.AccentLight),
+                    .background(LauncherState.accent),
             )
         }
     }

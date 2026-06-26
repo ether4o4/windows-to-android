@@ -136,7 +136,7 @@ private fun QuickToggle(icon: ImageVector, label: String, initialOn: Boolean, mo
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(if (on) NsColor.Accent else NsColor.ControlActive)
+            .background(if (on) LauncherState.accent else NsColor.ControlActive)
             .clickable { on = !on }
             .padding(vertical = 12.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -168,8 +168,8 @@ private fun SliderRow(icon: ImageVector, initial: Float) {
             onValueChange = { v = it },
             modifier = Modifier.weight(1f),
             colors = SliderDefaults.colors(
-                thumbColor = NsColor.AccentLight,
-                activeTrackColor = NsColor.Accent,
+                thumbColor = LauncherState.accent,
+                activeTrackColor = LauncherState.accent,
                 inactiveTrackColor = NsColor.StrokeStrong,
             ),
         )
@@ -214,7 +214,7 @@ private fun MonthCalendar() {
                                 modifier = Modifier
                                     .size(30.dp)
                                     .clip(CircleShape)
-                                    .background(if (isToday) NsColor.Accent else androidx.compose.ui.graphics.Color.Transparent),
+                                    .background(if (isToday) LauncherState.accent else androidx.compose.ui.graphics.Color.Transparent),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(d.toString(), color = NsColor.Text, fontSize = 12.sp)
