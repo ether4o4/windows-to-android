@@ -20,8 +20,10 @@ android {
     signingConfigs {
         create("release") {
             // Populated from CI secrets / env when present (see release.yml).
+            // CI passes an EMPTY string (not unset) when the secret is absent,
+            // so guard on blank too — file("") throws at configuration time.
             val ksPath = System.getenv("KEYSTORE_FILE")
-            if (ksPath != null) {
+            if (!ksPath.isNullOrBlank()) {
                 storeFile = file(ksPath)
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
@@ -39,7 +41,7 @@ android {
             // Sign release with the real keystore if secrets are set; otherwise
             // fall back to the debug key so the APK is always installable
             // (fine for a personal, non-Play-Store launcher).
-            signingConfig = if (System.getenv("KEYSTORE_FILE") != null) {
+            signingConfig = if (!System.getenv("KEYSTORE_FILE").isNullOrBlank()) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
