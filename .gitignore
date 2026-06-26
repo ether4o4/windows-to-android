@@ -1,11 +1,16 @@
-node_modules/
-dist/
-dist-ssr/
-*.local
+# Android / Gradle
+*.iml
+.gradle/
+/local.properties
+/.idea/
 .DS_Store
-.vite/
-coverage/
-android/app/build/
-android/.gradle/
-android/build/
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+app/build/
+*/build/
+local.properties
+*.apk
+*.aab
 *.log

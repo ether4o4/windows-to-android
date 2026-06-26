@@ -1,0 +1,15 @@
+# NeverSoft Command Prompt — append to (or source from) ~/.bashrc (doctrine §3A)
+# Produces the NeverSoft banner + a C:\Users\redma> prompt that tracks $PWD.
+
+# --- NeverSoft Services CMD banner ---
+clear
+echo "NeverSoft Services [Version 11.0.22631.0]"
+echo "(c) NeverSoft Services. All rights reserved."
+echo
+
+# --- map $PWD to a Windows-style path and build the C:\...> prompt ---
+win_path() {
+  local p="${PWD/#$HOME/C:/Users/redma}"   # home -> C:\Users\redma
+  printf '%s' "${p//\//\\}"                 # forward slash -> backslash
+}
+PROMPT_COMMAND='PS1="$(win_path)> "'
