@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,7 +19,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -31,20 +32,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.neversoft.launcher.apps.AppEntry
-import com.neversoft.launcher.ui.components.AppGlyph
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-/** Bottom edge-anchored, centered acrylic taskbar (doctrine §1.4). */
+private val GLYPH = 20.dp
+private val BTN = 38.dp
+
+/**
+ * Bottom edge-anchored acrylic taskbar (doctrine §1.4). Three non-overlapping
+ * zones: weather/widgets (left) · Start/Search/Task view (centered) ·
+ * system tray + clock (right). Flexible spacers keep zones apart on any width.
+ */
 @Composable
 fun Taskbar(
-    apps: List<AppEntry>,
     startActive: Boolean,
     quickActive: Boolean,
     notifActive: Boolean,
@@ -55,7 +61,6 @@ fun Taskbar(
     onToggleNotif: () -> Unit,
     onToggleTaskView: () -> Unit,
     onToggleWidgets: () -> Unit,
-    onLaunch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -64,7 +69,6 @@ fun Taskbar(
             .height(LauncherState.taskbarHeight)
             .background(NsColor.AcrylicTaskbar),
     ) {
-        // Top hairline divider.
         Box(
             Modifier
                 .align(Alignment.TopCenter)
@@ -73,68 +77,60 @@ fun Taskbar(
                 .background(NsColor.Stroke),
         )
 
-        // Far-left widgets entry (weather/news mini board).
-        Text(
-            text = "72°  Sunny",
-            color = NsColor.TextSecondary,
-            fontSize = 12.sp,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 6.dp)
-                .clip(RoundedCornerShape(NsDim.RadiusControl))
-                .clickable(onClick = onToggleWidgets)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        )
-
-        // Centered cluster: Start, Search, Task view, Widgets, then running apps.
         Row(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            TaskbarButton(active = startActive, onClick = onToggleStart) {
-                Icon(
-                    Icons.Filled.GridView, "Start",
-                    tint = LauncherState.accent, modifier = Modifier.size(NsDim.TaskbarGlyph),
-                )
-            }
-            TaskbarButton(onClick = onToggleStart) {
-                Icon(
-                    Icons.Filled.Search, "Search",
-                    tint = NsColor.Text, modifier = Modifier.size(NsDim.TaskbarGlyph),
-                )
-            }
-            TaskbarButton(active = taskViewActive, onClick = onToggleTaskView) {
-                Icon(
-                    Icons.Filled.ViewModule, "Task view",
-                    tint = NsColor.Text, modifier = Modifier.size(NsDim.TaskbarGlyph),
-                )
-            }
-            TaskbarButton(active = widgetsActive, onClick = onToggleWidgets) {
-                Icon(
-                    Icons.Filled.Widgets, "Widgets",
-                    tint = NsColor.Text, modifier = Modifier.size(NsDim.TaskbarGlyph),
-                )
-            }
-            apps.take(6).forEach { app ->
-                TaskbarButton(onClick = { onLaunch(app.packageName) }) {
-                    AppGlyph(app, size = NsDim.TaskbarGlyph)
+            // Left zone: weather / widgets entry.
+            WeatherChip(active = widgetsActive, onClick = onToggleWidgets)
+
+            Spacer(Modifier.weight(1f))
+
+            // Center zone: core navigation.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                TaskbarButton(active = startActive, onClick = onToggleStart) {
+                    Icon(Icons.Filled.GridView, "Start", tint = LauncherState.accent, modifier = Modifier.size(GLYPH))
+                }
+                TaskbarButton(onClick = onToggleStart) {
+                    Icon(Icons.Filled.Search, "Search", tint = NsColor.Text, modifier = Modifier.size(GLYPH))
+                }
+                TaskbarButton(active = taskViewActive, onClick = onToggleTaskView) {
+                    Icon(Icons.Filled.ViewModule, "Task view", tint = NsColor.Text, modifier = Modifier.size(GLYPH))
                 }
             }
-        }
 
-        // System tray (bottom-right): network/volume/battery → Quick Settings,
-        // clock → Notification Center.
-        Row(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            TrayCluster(active = quickActive, onClick = onToggleQuick)
-            Clock(active = notifActive, onClick = onToggleNotif)
+            Spacer(Modifier.weight(1f))
+
+            // Right zone: system tray + clock.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                TrayCluster(active = quickActive, onClick = onToggleQuick)
+                Clock(active = notifActive, onClick = onToggleNotif)
+            }
         }
+    }
+}
+
+@Composable
+private fun WeatherChip(active: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(NsDim.RadiusControl))
+            .background(if (active) NsColor.ControlHover else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Icon(Icons.Filled.WbSunny, "Widgets", tint = NsColor.AccentLight, modifier = Modifier.size(15.dp))
+        Text("72°", color = NsColor.TextSecondary, fontSize = 12.sp)
     }
 }
 
@@ -147,9 +143,9 @@ private fun TaskbarButton(
     Box(contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
-                .size(NsDim.IconButton)
+                .size(BTN)
                 .clip(RoundedCornerShape(NsDim.RadiusControl))
-                .background(if (active) NsColor.ControlHover else androidx.compose.ui.graphics.Color.Transparent)
+                .background(if (active) NsColor.ControlHover else Color.Transparent)
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) { content() }
@@ -173,15 +169,15 @@ private fun TrayCluster(active: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(NsDim.RadiusControl))
-            .background(if (active) NsColor.ControlHover else androidx.compose.ui.graphics.Color.Transparent)
+            .background(if (active) NsColor.ControlHover else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
+            .padding(horizontal = 7.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.Wifi, "Network", tint = NsColor.Text, modifier = Modifier.size(16.dp))
-        Icon(Icons.Filled.VolumeUp, "Volume", tint = NsColor.Text, modifier = Modifier.size(16.dp))
-        Icon(Icons.Filled.BatteryFull, "Battery", tint = NsColor.Text, modifier = Modifier.size(16.dp))
+        Icon(Icons.Filled.Wifi, "Network", tint = NsColor.Text, modifier = Modifier.size(15.dp))
+        Icon(Icons.Filled.VolumeUp, "Volume", tint = NsColor.Text, modifier = Modifier.size(15.dp))
+        Icon(Icons.Filled.BatteryFull, "Battery", tint = NsColor.Text, modifier = Modifier.size(15.dp))
     }
 }
 
@@ -200,12 +196,12 @@ private fun Clock(active: Boolean, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(NsDim.RadiusControl))
-            .background(if (active) NsColor.ControlHover else androidx.compose.ui.graphics.Color.Transparent)
+            .background(if (active) NsColor.ControlHover else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.End,
     ) {
-        Text(time, color = NsColor.Text, fontSize = 12.sp, lineHeight = 14.sp)
-        Text(date, color = NsColor.Text, fontSize = 12.sp, lineHeight = 14.sp)
+        Text(time, color = NsColor.Text, fontSize = 11.sp, lineHeight = 13.sp)
+        Text(date, color = NsColor.Text, fontSize = 11.sp, lineHeight = 13.sp)
     }
 }

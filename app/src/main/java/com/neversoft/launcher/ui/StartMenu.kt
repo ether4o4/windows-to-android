@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -60,12 +61,10 @@ fun StartMenu(
     onLaunch: (String) -> Unit,
     onCommandPrompt: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenFiles: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    val filtered = remember(query, apps) {
-        if (query.isBlank()) apps else apps.filter { it.label.contains(query, ignoreCase = true) }
-    }
 
     // Full-screen scrim; tapping outside the panel dismisses.
     Box(
@@ -86,37 +85,48 @@ fun StartMenu(
                 .padding(20.dp),
         ) {
             SearchField(query) { query = it }
-            Spacer(Modifier.height(18.dp))
-            Text("Pinned", color = NsColor.TextSecondary, fontSize = 13.sp)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(16.dp))
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(6),
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                item {
-                    StartTile(label = "Command Prompt", onClick = onCommandPrompt) {
-                        Icon(
-                            Icons.Filled.Terminal, null,
-                            tint = LauncherState.accent, modifier = Modifier.size(30.dp),
-                        )
+            if (query.isBlank()) {
+                Text("Pinned", color = NsColor.TextSecondary, fontSize = 13.sp)
+                Spacer(Modifier.height(10.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(6),
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    item {
+                        StartTile(label = "Command Prompt", onClick = onCommandPrompt) {
+                            Icon(Icons.Filled.Terminal, null, tint = LauncherState.accent, modifier = Modifier.size(30.dp))
+                        }
+                    }
+                    item {
+                        StartTile(label = "File Explorer", onClick = onOpenFiles) {
+                            Icon(Icons.Filled.FolderOpen, null, tint = LauncherState.accent, modifier = Modifier.size(30.dp))
+                        }
+                    }
+                    item {
+                        StartTile(label = "Settings", onClick = onOpenSettings) {
+                            Icon(Icons.Filled.Settings, null, tint = NsColor.Text, modifier = Modifier.size(30.dp))
+                        }
+                    }
+                    items(apps) { app ->
+                        StartTile(label = app.label, onClick = { onLaunch(app.packageName) }) {
+                            AppGlyph(app, size = 34.dp)
+                        }
                     }
                 }
-                item {
-                    StartTile(label = "Settings", onClick = onOpenSettings) {
-                        Icon(
-                            Icons.Filled.Settings, null,
-                            tint = NsColor.Text, modifier = Modifier.size(30.dp),
-                        )
-                    }
-                }
-                items(filtered) { app ->
-                    StartTile(label = app.label, onClick = { onLaunch(app.packageName) }) {
-                        AppGlyph(app, size = 34.dp)
-                    }
-                }
+            } else {
+                SpotlightResults(
+                    query = query,
+                    apps = apps,
+                    onLaunchApp = onLaunch,
+                    onOpenSettings = onOpenSettings,
+                    onCommandPrompt = onCommandPrompt,
+                    onOpenFiles = onOpenFiles,
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             Spacer(Modifier.height(12.dp))

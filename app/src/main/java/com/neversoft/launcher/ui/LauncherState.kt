@@ -13,6 +13,7 @@ import com.neversoft.launcher.ui.theme.NsDim
 enum class LauncherApp(val title: String) {
     Settings("Settings"),
     About("About this PC"),
+    FileExplorer("File Explorer"),
 }
 
 /**

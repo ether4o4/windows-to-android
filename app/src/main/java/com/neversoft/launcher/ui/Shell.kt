@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.neversoft.launcher.apps.AppRepository
 import com.neversoft.launcher.ui.apps.AboutApp
+import com.neversoft.launcher.ui.apps.FileExplorerApp
 import com.neversoft.launcher.ui.apps.SettingsApp
 import com.neversoft.launcher.ui.window.AppWindow
 
@@ -48,6 +49,7 @@ fun Shell() {
         Desktop(
             onOpenSettings = { openApp(LauncherApp.Settings) },
             onOpenAbout = { openApp(LauncherApp.About) },
+            onOpenFiles = { openApp(LauncherApp.FileExplorer) },
             onCommandPrompt = { AppRepository.launchTermux(context) },
         )
 
@@ -58,6 +60,7 @@ fun Shell() {
                     when (app) {
                         LauncherApp.Settings -> SettingsApp()
                         LauncherApp.About -> AboutApp()
+                        LauncherApp.FileExplorer -> FileExplorerApp()
                     }
                 }
             }
@@ -69,6 +72,7 @@ fun Shell() {
                 onLaunch = { overlay = Overlay.None; AppRepository.launch(context, it) },
                 onCommandPrompt = { overlay = Overlay.None; AppRepository.launchTermux(context) },
                 onOpenSettings = { openApp(LauncherApp.Settings) },
+                onOpenFiles = { openApp(LauncherApp.FileExplorer) },
                 onDismiss = { overlay = Overlay.None },
             )
 
@@ -86,7 +90,6 @@ fun Shell() {
         }
 
         Taskbar(
-            apps = apps,
             startActive = overlay == Overlay.Start,
             quickActive = overlay == Overlay.QuickSettings,
             notifActive = overlay == Overlay.Notifications,
@@ -97,7 +100,6 @@ fun Shell() {
             onToggleNotif = { toggle(Overlay.Notifications) },
             onToggleTaskView = { toggle(Overlay.TaskView) },
             onToggleWidgets = { toggle(Overlay.Widgets) },
-            onLaunch = { AppRepository.launch(context, it) },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }

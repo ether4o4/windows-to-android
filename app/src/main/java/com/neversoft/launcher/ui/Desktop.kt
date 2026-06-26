@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
@@ -46,6 +47,7 @@ import kotlin.math.roundToInt
 fun Desktop(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenFiles: () -> Unit,
     onCommandPrompt: () -> Unit,
 ) {
     var menuAt by remember { mutableStateOf<IntOffset?>(null) }
@@ -64,6 +66,7 @@ fun Desktop(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             DesktopIcon(Icons.Filled.Computer, "This PC", onClick = onOpenAbout)
+            DesktopIcon(Icons.Filled.FolderOpen, "File Explorer", onClick = onOpenFiles)
             DesktopIcon(Icons.Filled.Settings, "Settings", onClick = onOpenSettings)
             DesktopIcon(Icons.Filled.Delete, "Recycle Bin") {}
             DesktopIcon(Icons.Filled.Terminal, "Command Prompt", onClick = onCommandPrompt)
@@ -76,6 +79,7 @@ fun Desktop(
                     MenuItem("View", Icons.Filled.ViewModule) {},
                     MenuItem("Sort by", Icons.Filled.Sort) {},
                     MenuItem("Refresh", Icons.Filled.Refresh, separatorAfter = true) {},
+                    MenuItem("Open File Explorer", Icons.Filled.FolderOpen, onClick = onOpenFiles),
                     MenuItem("Personalize", Icons.Filled.Palette, onClick = onOpenSettings),
                     MenuItem("Open Command Prompt", Icons.Filled.Terminal, separatorAfter = true, onClick = onCommandPrompt),
                     MenuItem("Show more options", Icons.Filled.MoreHoriz) {},
