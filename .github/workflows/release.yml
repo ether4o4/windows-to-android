@@ -3,8 +3,9 @@ name: Release APK
 # Publishes a GitHub Release with the APK attached. Release assets download
 # WITHOUT a GitHub login (public repo), unlike CI artifacts.
 #
-# Trigger by pushing a tag (git tag v0.1.0 && git push --tags) or via the
-# "Run workflow" button / API with a tag input.
+# Cut a release by bumping the RELEASE_VERSION file (its contents become the tag,
+# e.g. v0.1.0) and pushing — that's the controlled trigger. After this lands on
+# the default branch you can also use the "Run workflow" button (workflow_dispatch).
 #
 # Signing: if the repo has KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS /
 # KEY_PASSWORD secrets, the APK is signed with that release key. Otherwise it
@@ -12,7 +13,7 @@ name: Release APK
 
 on:
   push:
-    tags: ["v*"]
+    paths: ["RELEASE_VERSION"]
   workflow_dispatch:
     inputs:
       tag:
@@ -65,7 +66,8 @@ jobs:
       - name: Stage APK
         id: stage
         run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="$(tr -d ' \n\r\t' < RELEASE_VERSION)"; fi
           mkdir -p out
           SRC="$(ls app/build/outputs/apk/release/*.apk | head -n1)"
           DEST="out/NeverSoft11-${TAG}.apk"
@@ -79,10 +81,10 @@ jobs:
           tag_name: ${{ steps.stage.outputs.tag }}
           name: NeverSoft 11 ${{ steps.stage.outputs.tag }}
           body: |
-            NeverSoft 11 — Windows-11-style Android launcher (debug-installable APK).
+            NeverSoft 11 — Windows-11-style Android launcher (installable APK).
 
-            Install: download the `.apk` below, then `adb install -r <file>` (or tap it
-            on-device with "install unknown apps" enabled). Set as default Home:
+            Install: download the `.apk` below, then `adb install -r <file>` (or tap
+            it on-device with "install unknown apps" enabled). Set as default Home:
             Settings → Apps → Default apps → Home app → NeverSoft 11.
 
             Built from `${{ github.sha }}`. This is a CI build; run the on-device
