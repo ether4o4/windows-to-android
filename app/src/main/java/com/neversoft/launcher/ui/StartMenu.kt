@@ -121,9 +121,7 @@ fun StartMenu(
                 SpotlightResults(
                     query = query,
                     apps = apps,
-                    onLaunchApp = onLaunch,
-                    onOpenSettings = onOpenSettings,
-                    onCommandPrompt = onCommandPrompt,
+                    onResultOpened = onDismiss,
                     onOpenFiles = onOpenFiles,
                     modifier = Modifier.weight(1f),
                 )
