@@ -24,12 +24,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Image as ImageIcon
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -227,7 +227,7 @@ private fun EmptyResults(query: String, filter: SpotFilter, onOpenFiles: () -> U
 private fun kindIcon(kind: SpotKind): ImageVector = when (kind) {
     SpotKind.App -> Icons.Filled.InsertDriveFile
     SpotKind.Contact -> Icons.Filled.Person
-    SpotKind.Photo -> ImageIcon
+    SpotKind.Photo -> Icons.Filled.Photo
     SpotKind.Video -> Icons.Filled.Movie
     SpotKind.Audio -> Icons.Filled.MusicNote
     SpotKind.FileItem -> Icons.Filled.FolderOpen
