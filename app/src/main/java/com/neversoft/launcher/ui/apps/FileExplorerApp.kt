@@ -7,16 +7,19 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,14 +27,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.DriveFileMove
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
@@ -39,6 +50,9 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.ViewColumn
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,9 +64,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,25 +84,31 @@ import java.util.Locale
 import kotlin.math.abs
 
 /**
- * Ghost Key File Explorer (reconstructed from the Ghost-key-file-explorer brief:
- * auto-tags who/what/when/where, global timeline, secure Vault, Limbo sandbox,
- * local-first), restyled to the NeverSoft / Win11 aesthetic.
- *
- * NOTE: original implementation matching that description — the actual repo
- * could not be read from this session to clone verbatim. Full-device browsing
- * needs all-files access (device-gated); the app's own storage always works.
+ * Ghost Key File Explorer, matching the Ghost-key-file-explorer spec (read from
+ * its public README): dual-pane manager with list/grid views and Windows-style
+ * move/copy between panes; auto-tags (who/what/when/where), per-file SKU, global
+ * timeline, AES-GCM vault types (Standard/Forensic/Ephemeral), Limbo sandbox.
+ * Reimplemented in Compose (the original is React/TS); vault crypto + sandbox
+ * execution are on-device refinements.
  */
 private enum class GkTab(val label: String) {
     Files("Files"), Timeline("Timeline"), Vault("Vault"), Limbo("Limbo")
+}
+
+private class PaneState(start: File) {
+    var current by mutableStateOf(start)
+    var selected by mutableStateOf<File?>(null)
+    var rev by mutableIntStateOf(0) // bump to force a re-list after writes
+    fun refresh() { rev++ }
 }
 
 @Composable
 fun FileExplorerApp() {
     val context = LocalContext.current
     val root = remember { Environment.getExternalStorageDirectory() ?: context.filesDir }
-    var current by remember { mutableStateOf(root) }
     var tab by remember { mutableStateOf(GkTab.Files) }
-    var selected by remember { mutableStateOf<File?>(null) }
+    var dual by remember { mutableStateOf(false) }
+    var grid by remember { mutableStateOf(false) }
     var accessTick by remember { mutableIntStateOf(0) }
 
     val hasAccess = remember(accessTick) { hasStorageAccess(context) }
@@ -94,323 +116,419 @@ fun FileExplorerApp() {
         ActivityResultContracts.RequestPermission(),
     ) { accessTick++ }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(NsColor.Solid),
-    ) {
-        GkHeader(
-            current = current,
-            atRoot = current == root,
-            hasAccess = hasAccess,
-            onUp = { current = current.parentFile ?: root; selected = null },
-            onHome = { current = root; selected = null },
+    val left = remember { PaneState(root) }
+    val right = remember { PaneState(root) }
+    var activeIdx by remember { mutableIntStateOf(0) }
+    val active = if (activeIdx == 0) left else right
+    val other = if (activeIdx == 0) right else left
+
+    Column(Modifier.fillMaxSize().background(NsColor.Solid)) {
+        GkTopBar(
+            grid = grid, dual = dual, hasAccess = hasAccess,
+            onToggleGrid = { grid = !grid },
+            onToggleDual = { dual = !dual; if (!dual) activeIdx = 0 },
             onGrant = { requestStorageAccess(context, permLauncher) },
         )
-        GkTabs(tab) { tab = it; selected = null }
+        GkTabs(tab) { tab = it }
 
         Box(Modifier.weight(1f)) {
             when (tab) {
-                GkTab.Files -> GkFiles(
-                    current = current,
-                    hasAccess = hasAccess,
-                    onOpenDir = { current = it; selected = null },
-                    onSelect = { selected = it },
-                    onGrant = { requestStorageAccess(context, permLauncher) },
-                )
-                GkTab.Timeline -> GkTimeline(current = current)
-                GkTab.Vault -> GkPlaceholder(
-                    icon = Icons.Filled.Lock,
-                    title = "Secure Vault",
-                    body = "Local-first private vault. Files you move here stay encrypted on-device. (Vault encryption is a redma refinement.)",
-                )
+                GkTab.Files -> {
+                    if (dual) {
+                        Row(Modifier.fillMaxSize()) {
+                            PaneView(left, grid, active = activeIdx == 0, dual = true, root = root,
+                                onActivate = { activeIdx = 0 }, onGrant = { requestStorageAccess(context, permLauncher) },
+                                modifier = Modifier.weight(1f))
+                            Box(Modifier.width(1.dp).fillMaxHeight().background(NsColor.StrokeStrong))
+                            PaneView(right, grid, active = activeIdx == 1, dual = true, root = root,
+                                onActivate = { activeIdx = 1 }, onGrant = { requestStorageAccess(context, permLauncher) },
+                                modifier = Modifier.weight(1f))
+                        }
+                    } else {
+                        PaneView(left, grid, active = true, dual = false, root = root,
+                            onActivate = {}, onGrant = { requestStorageAccess(context, permLauncher) },
+                            modifier = Modifier.fillMaxSize())
+                    }
+                }
+                GkTab.Timeline -> GkTimeline(active.current)
+                GkTab.Vault -> GkVault()
                 GkTab.Limbo -> GkPlaceholder(
-                    icon = Icons.Filled.Science,
-                    title = "Limbo sandbox",
-                    body = "Inspect untrusted files in isolation before opening them. (Sandboxed execution is a redma refinement.)",
+                    Icons.Filled.Science, "Limbo sandbox",
+                    "Inspect untrusted files in isolation before opening them. (Sandboxed execution is a redma refinement.)",
                 )
             }
         }
 
-        selected?.let { f ->
-            if (tab == GkTab.Files) GkDetail(f, onClose = { selected = null })
+        if (tab == GkTab.Files) {
+            active.selected?.let { sel ->
+                SelectionPanel(
+                    file = sel,
+                    dual = dual,
+                    onClose = { active.selected = null },
+                    onNewFolder = {
+                        newFolder(active.current)?.let { Toast.makeText(context, "Created ${it.name}", Toast.LENGTH_SHORT).show() }
+                            ?: Toast.makeText(context, "Couldn't create folder", Toast.LENGTH_SHORT).show()
+                        active.refresh()
+                    },
+                    onDelete = {
+                        val ok = runCatching { sel.deleteRecursively() }.getOrDefault(false)
+                        Toast.makeText(context, if (ok) "Deleted ${sel.name}" else "Delete failed", Toast.LENGTH_SHORT).show()
+                        active.selected = null; active.refresh()
+                    },
+                    onMove = {
+                        val ok = moveInto(sel, other.current)
+                        Toast.makeText(context, if (ok) "Moved to ${other.current.name}" else "Move failed", Toast.LENGTH_SHORT).show()
+                        active.selected = null; active.refresh(); other.refresh()
+                    },
+                    onCopy = {
+                        val ok = copyInto(sel, other.current)
+                        Toast.makeText(context, if (ok) "Copied to ${other.current.name}" else "Copy failed", Toast.LENGTH_SHORT).show()
+                        other.refresh()
+                    },
+                )
+            }
         }
     }
 }
 
-// ---------------- header / tabs ----------------
+// ---------------- top bar / tabs ----------------
 
 @Composable
-private fun GkHeader(
-    current: File,
-    atRoot: Boolean,
-    hasAccess: Boolean,
-    onUp: () -> Unit,
-    onHome: () -> Unit,
-    onGrant: () -> Unit,
+private fun GkTopBar(
+    grid: Boolean, dual: Boolean, hasAccess: Boolean,
+    onToggleGrid: () -> Unit, onToggleDual: () -> Unit, onGrant: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().background(NsColor.Mica).padding(10.dp)) {
+    Column(Modifier.fillMaxWidth().background(NsColor.Mica).padding(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            HeaderButton(Icons.Filled.Home, "Home", onHome)
+            ToggleButton(if (grid) Icons.Filled.ViewList else Icons.Filled.GridView, "View", onToggleGrid)
             Spacer(Modifier.width(4.dp))
-            HeaderButton(Icons.Filled.ArrowUpward, "Up", onUp, enabled = !atRoot)
-            Spacer(Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(NsDim.RadiusControl))
-                    .background(NsColor.Solid)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-            ) {
-                Text(
-                    text = winPath(current),
-                    color = NsColor.TextSecondary,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        if (!hasAccess) {
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(NsDim.RadiusControl))
-                    .background(LauncherState.accent)
-                    .clickable(onClick = onGrant)
-                    .padding(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Filled.Lock, null, tint = NsColor.Text, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Grant all-files access to browse your device", color = NsColor.Text, fontSize = 12.sp)
+            ToggleButton(Icons.Filled.ViewColumn, "Dual pane", onToggleDual, on = dual)
+            Spacer(Modifier.weight(1f))
+            if (!hasAccess) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(NsDim.RadiusControl))
+                        .background(LauncherState.accent)
+                        .clickable(onClick = onGrant)
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.Lock, null, tint = NsColor.Text, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Grant access", color = NsColor.Text, fontSize = 12.sp)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun HeaderButton(icon: ImageVector, desc: String, onClick: () -> Unit, enabled: Boolean = true) {
+private fun ToggleButton(icon: ImageVector, desc: String, onClick: () -> Unit, on: Boolean = false) {
     Box(
         modifier = Modifier
             .size(34.dp)
             .clip(RoundedCornerShape(NsDim.RadiusControl))
-            .clickable(enabled = enabled, onClick = onClick),
+            .background(if (on) LauncherState.accent else Color.Transparent)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon, desc,
-            tint = if (enabled) NsColor.Text else NsColor.TextTertiary,
-            modifier = Modifier.size(18.dp),
-        )
-    }
+    ) { Icon(icon, desc, tint = NsColor.Text, modifier = Modifier.size(18.dp)) }
 }
 
 @Composable
 private fun GkTabs(selected: GkTab, onSelect: (GkTab) -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(NsColor.Mica)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().background(NsColor.Mica).padding(horizontal = 8.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         GkTab.entries.forEach { t ->
-            val isSel = t == selected
+            val sel = t == selected
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSel) LauncherState.accent else NsColor.ControlActive)
+                    .background(if (sel) LauncherState.accent else NsColor.ControlActive)
                     .clickable { onSelect(t) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                    .padding(horizontal = 13.dp, vertical = 6.dp),
             ) {
-                Text(
-                    t.label,
-                    color = if (isSel) NsColor.Text else NsColor.TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = if (isSel) FontWeight.Medium else FontWeight.Normal,
-                )
+                Text(t.label, color = if (sel) NsColor.Text else NsColor.TextSecondary, fontSize = 12.sp,
+                    fontWeight = if (sel) FontWeight.Medium else FontWeight.Normal)
             }
         }
     }
 }
 
-// ---------------- files ----------------
+// ---------------- pane ----------------
 
 @Composable
-private fun GkFiles(
-    current: File,
-    hasAccess: Boolean,
-    onOpenDir: (File) -> Unit,
-    onSelect: (File) -> Unit,
+private fun PaneView(
+    pane: PaneState,
+    grid: Boolean,
+    active: Boolean,
+    dual: Boolean,
+    root: File,
+    onActivate: () -> Unit,
     onGrant: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val entries = remember(current, hasAccess) {
-        (current.listFiles()?.toList() ?: emptyList())
+    val entries = remember(pane.current, pane.rev) {
+        (pane.current.listFiles()?.toList() ?: emptyList())
             .sortedWith(compareByDescending<File> { it.isDirectory }.thenBy { it.name.lowercase() })
     }
-    if (entries.isEmpty()) {
-        EmptyState(
-            text = if (hasAccess) "This folder is empty" else "No access — grant all-files access to browse",
-            actionLabel = if (hasAccess) null else "Grant access",
-            onAction = onGrant,
-        )
-        return
-    }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp)) {
-        items(entries.size) { i ->
-            val f = entries[i]
-            FileRow(f, onClick = { if (f.isDirectory) onOpenDir(f) else onSelect(f) })
+    val border = if (dual && active) Modifier.border(1.dp, LauncherState.accent) else Modifier
+
+    Column(
+        modifier = modifier
+            .then(border)
+            .clickable(onClick = onActivate),
+    ) {
+        // Pane breadcrumb.
+        Row(Modifier.fillMaxWidth().padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            PaneIcon(Icons.Filled.Home, "Home") { pane.current = root; pane.selected = null; onActivate() }
+            PaneIcon(Icons.Filled.ArrowUpward, "Up", enabled = pane.current != root) {
+                pane.current = pane.current.parentFile ?: root; pane.selected = null; onActivate()
+            }
+            Spacer(Modifier.width(6.dp))
+            Text(pane.current.name.ifBlank { "/" }, color = NsColor.TextSecondary, fontSize = 11.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+
+        if (entries.isEmpty()) {
+            EmptyState("Empty", "Grant access", onGrant)
+            return@Column
+        }
+
+        if (grid) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(if (dual) 72.dp else 88.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp),
+            ) {
+                items(entries.size) { i ->
+                    val f = entries[i]
+                    FileCell(f, selected = pane.selected == f) { onClickEntry(pane, f, onActivate) }
+                }
+            }
+        } else {
+            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 6.dp)) {
+                items(entries.size) { i ->
+                    val f = entries[i]
+                    FileRow(f, compact = dual, selected = pane.selected == f) { onClickEntry(pane, f, onActivate) }
+                }
+            }
         }
     }
 }
 
+private fun onClickEntry(pane: PaneState, f: File, onActivate: () -> Unit) {
+    onActivate()
+    if (f.isDirectory) { pane.current = f; pane.selected = null } else { pane.selected = f }
+}
+
 @Composable
-private fun FileRow(f: File, onClick: () -> Unit) {
+private fun PaneIcon(icon: ImageVector, desc: String, enabled: Boolean = true, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.size(30.dp).clip(RoundedCornerShape(NsDim.RadiusControl))
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Icon(icon, desc, tint = if (enabled) NsColor.Text else NsColor.TextTertiary, modifier = Modifier.size(16.dp)) }
+}
+
+@Composable
+private fun FileRow(f: File, compact: Boolean, selected: Boolean, onClick: () -> Unit) {
     val kind = fileKind(f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(NsDim.RadiusControl))
+            .background(if (selected) NsColor.ControlSelected else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 9.dp),
+            .padding(horizontal = 6.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(kindIcon(kind), kind, tint = NsColor.AccentLight, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.width(12.dp))
+        Icon(kindIcon(kind), kind, tint = NsColor.AccentLight, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(f.name, color = NsColor.Text, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                text = if (f.isDirectory) "$kind · ${f.listFilesCountSafe()} items" else "$kind · ${humanSize(f.length())}",
-                color = NsColor.TextTertiary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
+            if (!compact) {
+                Text(
+                    if (f.isDirectory) "$kind · ${f.listFilesCountSafe()} items" else "$kind · ${humanSize(f.length())}",
+                    color = NsColor.TextTertiary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        Text(shortDate(f.lastModified()), color = NsColor.TextTertiary, fontSize = 11.sp)
+        if (!compact) Text(shortDate(f.lastModified()), color = NsColor.TextTertiary, fontSize = 11.sp)
     }
 }
 
-// ---------------- timeline (global, by day) ----------------
+@Composable
+private fun FileCell(f: File, selected: Boolean, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .padding(4.dp)
+            .clip(RoundedCornerShape(NsDim.RadiusControl))
+            .background(if (selected) NsColor.ControlSelected else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(kindIcon(fileKind(f)), null, tint = NsColor.AccentLight, modifier = Modifier.size(30.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(f.name, color = NsColor.Text, fontSize = 11.sp, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+// ---------------- selection action panel (auto-tags + ops) ----------------
 
 @Composable
-private fun GkTimeline(current: File) {
-    val files = remember(current) {
-        (current.listFiles()?.filter { it.isFile } ?: emptyList())
-            .sortedByDescending { it.lastModified() }
+private fun SelectionPanel(
+    file: File,
+    dual: Boolean,
+    onClose: () -> Unit,
+    onNewFolder: () -> Unit,
+    onDelete: () -> Unit,
+    onMove: () -> Unit,
+    onCopy: () -> Unit,
+) {
+    var confirmDelete by remember(file) { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().background(NsColor.Mica).padding(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(kindIcon(fileKind(file)), null, tint = NsColor.AccentLight, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(file.name, color = NsColor.Text, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Box(Modifier.size(26.dp).clip(RoundedCornerShape(NsDim.RadiusControl)).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Close, "Close", tint = NsColor.TextSecondary, modifier = Modifier.size(15.dp))
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        // Auto-tags (who/what/when/where) + SKU.
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TagChip("who · ${Brand.USER}"); TagChip("what · ${fileKind(file)}")
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TagChip("when · ${shortDate(file.lastModified())}"); TagChip("where · ${file.parentFile?.name ?: "root"}")
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("SKU  ${skuFor(file)}", color = NsColor.TextTertiary, fontSize = 11.sp)
+        Spacer(Modifier.height(10.dp))
+        // Operations.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionButton(Icons.Filled.CreateNewFolder, "New folder", onNewFolder)
+            if (dual) {
+                ActionButton(Icons.Filled.DriveFileMove, "Move →", onMove)
+                ActionButton(Icons.Filled.ContentCopy, "Copy →", onCopy)
+            }
+            if (confirmDelete) {
+                ActionButton(Icons.Filled.DeleteOutline, "Confirm?", onDelete, danger = true)
+            } else {
+                ActionButton(Icons.Filled.DeleteOutline, "Delete", { confirmDelete = true }, danger = true)
+            }
+        }
     }
-    if (files.isEmpty()) {
-        EmptyState("No files to show on the timeline", null) {}
-        return
+}
+
+@Composable
+private fun ActionButton(icon: ImageVector, label: String, onClick: () -> Unit, danger: Boolean = false) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(NsDim.RadiusControl))
+            .background(NsColor.ControlActive)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = if (danger) NsColor.Danger else NsColor.Text, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = if (danger) NsColor.Danger else NsColor.Text, fontSize = 11.sp)
     }
+}
+
+// ---------------- timeline ----------------
+
+@Composable
+private fun GkTimeline(dir: File) {
+    val files = remember(dir) {
+        (dir.listFiles()?.filter { it.isFile } ?: emptyList()).sortedByDescending { it.lastModified() }
+    }
+    if (files.isEmpty()) { EmptyState("No files on the timeline", null) {}; return }
     val grouped = remember(files) { files.groupBy { dayBucket(it.lastModified()) } }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp)) {
         grouped.forEach { (bucket, list) ->
             item {
-                Text(
-                    bucket,
-                    color = NsColor.TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 4.dp),
-                )
+                Text(bucket, color = NsColor.TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 4.dp))
             }
-            items(list.size) { i ->
-                val f = list[i]
-                FileRow(f, onClick = {})
-            }
+            items(list.size) { i -> FileRow(list[i], compact = false, selected = false) {} }
         }
     }
 }
 
-// ---------------- detail (auto-tags who/what/when/where) ----------------
+// ---------------- vault ----------------
 
 @Composable
-private fun GkDetail(f: File, onClose: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(NsColor.Mica)
-            .padding(14.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(kindIcon(fileKind(f)), null, tint = NsColor.AccentLight, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(10.dp))
-            Text(f.name, color = NsColor.Text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(NsDim.RadiusControl)).clickable(onClick = onClose),
-                contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Filled.Close, "Close", tint = NsColor.TextSecondary, modifier = Modifier.size(16.dp)) }
-        }
-        Spacer(Modifier.height(10.dp))
-        Text("Auto-tags", color = NsColor.TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TagChip("who · ${Brand.USER}")
-            TagChip("what · ${fileKind(f)}")
-        }
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TagChip("when · ${shortDate(f.lastModified())}")
-            TagChip("where · ${f.parentFile?.name ?: "root"}")
-        }
-        Spacer(Modifier.height(10.dp))
-        Text("SKU  ${skuFor(f)}", color = NsColor.TextTertiary, fontSize = 11.sp)
+private fun GkVault() {
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Secure Vault", color = NsColor.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("AES-GCM encrypted containers, local-first. (Encryption is a redma refinement.)",
+            color = NsColor.TextTertiary, fontSize = 12.sp)
+        VaultCard(Icons.Filled.Lock, "Standard", "Everyday encrypted storage for sensitive files.")
+        VaultCard(Icons.Filled.Fingerprint, "Forensic", "Tamper-evident container with access logging.")
+        VaultCard(Icons.Filled.Timer, "Ephemeral", "Auto-wipes contents after a set time or on close.")
     }
 }
 
 @Composable
-private fun TagChip(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(NsColor.ControlActive)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+private fun VaultCard(icon: ImageVector, title: String, body: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(NsDim.RadiusOverlay)).background(NsColor.ControlActive).padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, color = NsColor.TextSecondary, fontSize = 11.sp)
+        Icon(icon, null, tint = NsColor.AccentLight, modifier = Modifier.size(26.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = NsColor.Text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(body, color = NsColor.TextTertiary, fontSize = 11.sp)
+        }
+        Icon(Icons.Filled.Lock, null, tint = NsColor.TextTertiary, modifier = Modifier.size(16.dp))
     }
 }
 
-// ---------------- shared bits ----------------
+// ---------------- shared ----------------
 
 @Composable
 private fun GkPlaceholder(icon: ImageVector, title: String, body: String) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = NsColor.AccentLight, modifier = Modifier.size(40.dp))
         Spacer(Modifier.height(12.dp))
         Text(title, color = NsColor.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
-        Text(body, color = NsColor.TextTertiary, fontSize = 12.sp)
+        Text(body, color = NsColor.TextTertiary, fontSize = 12.sp, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun EmptyState(text: String, actionLabel: String?, onAction: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(Icons.Filled.Folder, null, tint = NsColor.TextTertiary, modifier = Modifier.size(36.dp))
-        Spacer(Modifier.height(10.dp))
-        Text(text, color = NsColor.TextTertiary, fontSize = 13.sp)
+    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Filled.Folder, null, tint = NsColor.TextTertiary, modifier = Modifier.size(32.dp))
+        Spacer(Modifier.height(8.dp))
+        Text(text, color = NsColor.TextTertiary, fontSize = 12.sp, textAlign = TextAlign.Center)
         if (actionLabel != null) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(NsDim.RadiusControl))
-                    .background(LauncherState.accent)
-                    .clickable(onClick = onAction)
-                    .padding(horizontal = 16.dp, vertical = 9.dp),
-            ) { Text(actionLabel, color = NsColor.Text, fontSize = 13.sp) }
+                modifier = Modifier.clip(RoundedCornerShape(NsDim.RadiusControl)).background(LauncherState.accent)
+                    .clickable(onClick = onAction).padding(horizontal = 14.dp, vertical = 8.dp),
+            ) { Text(actionLabel, color = NsColor.Text, fontSize = 12.sp) }
         }
     }
 }
 
-// ---------------- helpers (pure) ----------------
+@Composable
+private fun TagChip(text: String) {
+    Box(Modifier.clip(RoundedCornerShape(12.dp)).background(NsColor.ControlActive).padding(horizontal = 10.dp, vertical = 5.dp)) {
+        Text(text, color = NsColor.TextSecondary, fontSize = 11.sp)
+    }
+}
+
+// ---------------- helpers ----------------
 
 private fun hasStorageAccess(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -420,28 +538,44 @@ private fun hasStorageAccess(context: Context): Boolean =
             android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 
-private fun requestStorageAccess(
-    context: Context,
-    permLauncher: ActivityResultLauncher<String>,
-) {
+private fun requestStorageAccess(context: Context, permLauncher: ActivityResultLauncher<String>) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         val intent = Intent(
             Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
             Uri.parse("package:${context.packageName}"),
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { context.startActivity(intent) }
-            .onFailure {
-                runCatching {
-                    context.startActivity(
-                        Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }
+        runCatching { context.startActivity(intent) }.onFailure {
+            runCatching {
+                context.startActivity(
+                    Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
             }
+        }
     } else {
         permLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 }
+
+private fun newFolder(dir: File): File? {
+    var name = "New folder"
+    var n = 2
+    var target = File(dir, name)
+    while (target.exists()) { name = "New folder ($n)"; target = File(dir, name); n++ }
+    return runCatching { if (target.mkdirs()) target else null }.getOrNull()
+}
+
+private fun moveInto(src: File, destDir: File): Boolean = runCatching {
+    val dest = File(destDir, src.name)
+    if (dest.absolutePath == src.absolutePath) return false
+    if (src.renameTo(dest)) return true
+    if (src.copyRecursively(dest, overwrite = false)) src.deleteRecursively() else false
+}.getOrDefault(false)
+
+private fun copyInto(src: File, destDir: File): Boolean = runCatching {
+    val dest = File(destDir, src.name)
+    if (dest.absolutePath == src.absolutePath) return false
+    src.copyRecursively(dest, overwrite = false)
+}.getOrDefault(false)
 
 private fun fileKind(f: File): String = when {
     f.isDirectory -> "Folder"
@@ -480,9 +614,8 @@ private fun shortDate(millis: Long): String =
     SimpleDateFormat("M/d/yy", Locale.getDefault()).format(Date(millis))
 
 private fun dayBucket(millis: Long): String {
-    val now = System.currentTimeMillis()
     val day = 24L * 60 * 60 * 1000
-    val diff = now - millis
+    val diff = System.currentTimeMillis() - millis
     return when {
         diff < day -> "Today"
         diff < 2 * day -> "Yesterday"
@@ -492,14 +625,5 @@ private fun dayBucket(millis: Long): String {
     }
 }
 
-/** Stable per-path SKU (Ghost Key links related data via SKUs). */
 private fun skuFor(f: File): String =
     "GK-" + abs(f.absolutePath.hashCode()).toString(16).uppercase().padStart(6, '0').take(6)
-
-/** Map a real path to a Windows-style display path. */
-private fun winPath(f: File): String {
-    val ext = Environment.getExternalStorageDirectory()?.absolutePath
-    val p = f.absolutePath
-    val mapped = if (ext != null && p.startsWith(ext)) "C:\\Users\\${Brand.USER}" + p.removePrefix(ext) else p
-    return mapped.replace('/', '\\')
-}
