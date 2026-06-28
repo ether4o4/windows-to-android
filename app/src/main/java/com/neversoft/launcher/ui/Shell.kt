@@ -37,6 +37,7 @@ fun Shell() {
     val context = LocalContext.current
     val apps = remember { AppRepository.loadApps(context) }
     var overlay by remember { mutableStateOf(Overlay.None) }
+    var locked by remember { mutableStateOf(true) } // boot into the lock screen
     val windows = remember { mutableStateListOf<LauncherApp>() }
 
     fun openApp(app: LauncherApp) {
@@ -92,6 +93,7 @@ fun Shell() {
                 onLaunch = { overlay = Overlay.None; AppRepository.launch(context, it) },
                 onCommandPrompt = { overlay = Overlay.None; AppRepository.launchTermux(context) },
                 onOpenApp = { openApp(it) },
+                onLock = { overlay = Overlay.None; locked = true },
                 onDismiss = { overlay = Overlay.None },
             )
 
@@ -119,7 +121,14 @@ fun Shell() {
             onToggleNotif = { toggle(Overlay.Notifications) },
             onToggleTaskView = { toggle(Overlay.TaskView) },
             onToggleWidgets = { toggle(Overlay.Widgets) },
+            windows = windows.toList(),
+            onWindowClick = { openApp(it) },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+
+        // Lock / boot screen sits on top of everything.
+        if (locked) {
+            LockScreen(onUnlock = { locked = false })
+        }
     }
 }

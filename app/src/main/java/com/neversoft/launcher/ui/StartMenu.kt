@@ -61,6 +61,7 @@ fun StartMenu(
     onLaunch: (String) -> Unit,
     onCommandPrompt: () -> Unit,
     onOpenApp: (LauncherApp) -> Unit,
+    onLock: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
@@ -133,10 +134,10 @@ fun StartMenu(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(NsDim.RadiusControl))
-                        .clickable(onClick = onDismiss)
+                        .clickable(onClick = onLock)
                         .padding(8.dp),
                 ) {
-                    Icon(Icons.Filled.PowerSettingsNew, "Power", tint = NsColor.Text, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Filled.PowerSettingsNew, "Lock", tint = NsColor.Text, modifier = Modifier.size(22.dp))
                 }
             }
         }

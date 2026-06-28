@@ -2,6 +2,7 @@ package com.neversoft.launcher.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryFull
@@ -61,6 +63,8 @@ fun Taskbar(
     onToggleNotif: () -> Unit,
     onToggleTaskView: () -> Unit,
     onToggleWidgets: () -> Unit,
+    windows: List<LauncherApp>,
+    onWindowClick: (LauncherApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -86,25 +90,30 @@ fun Taskbar(
             // Left zone: weather / widgets entry.
             WeatherChip(active = widgetsActive, onClick = onToggleWidgets)
 
-            Spacer(Modifier.weight(1f))
-
-            // Center zone: core navigation.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                TaskbarButton(active = startActive, onClick = onToggleStart) {
-                    Icon(Icons.Filled.GridView, "Start", tint = LauncherState.accent, modifier = Modifier.size(GLYPH))
-                }
-                TaskbarButton(onClick = onToggleStart) {
-                    Icon(Icons.Filled.Search, "Search", tint = NsColor.Text, modifier = Modifier.size(GLYPH))
-                }
-                TaskbarButton(active = taskViewActive, onClick = onToggleTaskView) {
-                    Icon(Icons.Filled.ViewModule, "Task view", tint = NsColor.Text, modifier = Modifier.size(GLYPH))
+            // Center zone: core navigation + running windows. Centered when it
+            // fits; scrolls (never overlaps the tray) when many windows are open.
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TaskbarButton(active = startActive, onClick = onToggleStart) {
+                        Icon(Icons.Filled.GridView, "Start", tint = LauncherState.accent, modifier = Modifier.size(GLYPH))
+                    }
+                    TaskbarButton(onClick = onToggleStart) {
+                        Icon(Icons.Filled.Search, "Search", tint = NsColor.Text, modifier = Modifier.size(GLYPH))
+                    }
+                    TaskbarButton(active = taskViewActive, onClick = onToggleTaskView) {
+                        Icon(Icons.Filled.ViewModule, "Task view", tint = NsColor.Text, modifier = Modifier.size(GLYPH))
+                    }
+                    windows.forEach { w ->
+                        TaskbarButton(active = true, onClick = { onWindowClick(w) }) {
+                            Icon(iconForApp(w), w.title, tint = NsColor.Text, modifier = Modifier.size(GLYPH))
+                        }
+                    }
                 }
             }
-
-            Spacer(Modifier.weight(1f))
 
             // Right zone: system tray + clock.
             Row(

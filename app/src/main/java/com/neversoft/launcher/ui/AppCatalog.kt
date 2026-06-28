@@ -35,3 +35,8 @@ val InLauncherApps: List<CatalogApp> = listOf(
     CatalogApp(LauncherApp.Settings, Icons.Filled.Settings),
     CatalogApp(LauncherApp.About, Icons.Filled.Info),
 )
+
+/** Icon for any built-in app (used by the taskbar's running-window buttons). */
+fun iconForApp(app: LauncherApp): ImageVector =
+    InLauncherApps.firstOrNull { it.app == app }?.icon ?: Icons.Filled.Info
+
