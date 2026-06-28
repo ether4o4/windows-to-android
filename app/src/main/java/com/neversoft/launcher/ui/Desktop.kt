@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
+import com.neversoft.launcher.Brand
 import kotlin.math.roundToInt
 
 /** Desktop surface: top-left shortcuts + Fluent right-click (long-press) menu. */
@@ -70,6 +71,27 @@ fun Desktop(
             DesktopIcon(Icons.Filled.Settings, "Settings", onClick = onOpenSettings)
             DesktopIcon(Icons.Filled.Delete, "Recycle Bin") {}
             DesktopIcon(Icons.Filled.Terminal, "Command Prompt", onClick = onCommandPrompt)
+        }
+
+        // Windows-style activation watermark, rebranded.
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 18.dp, bottom = LauncherState.taskbarHeight + 18.dp),
+            horizontalAlignment = Alignment.End,
+        ) {
+            Text(
+                Brand.NAME,
+                color = NsColor.Text.copy(alpha = 0.62f),
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+            )
+            Text(
+                "${Brand.SHORT} Pro  ·  Build ${Brand.VERSION}",
+                color = NsColor.Text.copy(alpha = 0.42f),
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+            )
         }
 
         menuAt?.let { pos ->
