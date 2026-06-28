@@ -60,8 +60,7 @@ fun StartMenu(
     apps: List<AppEntry>,
     onLaunch: (String) -> Unit,
     onCommandPrompt: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenFiles: () -> Unit,
+    onOpenApp: (LauncherApp) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
@@ -101,14 +100,9 @@ fun StartMenu(
                             Icon(Icons.Filled.Terminal, null, tint = LauncherState.accent, modifier = Modifier.size(30.dp))
                         }
                     }
-                    item {
-                        StartTile(label = "File Explorer", onClick = onOpenFiles) {
-                            Icon(Icons.Filled.FolderOpen, null, tint = LauncherState.accent, modifier = Modifier.size(30.dp))
-                        }
-                    }
-                    item {
-                        StartTile(label = "Settings", onClick = onOpenSettings) {
-                            Icon(Icons.Filled.Settings, null, tint = NsColor.Text, modifier = Modifier.size(30.dp))
+                    items(InLauncherApps) { cat ->
+                        StartTile(label = cat.app.title, onClick = { onOpenApp(cat.app) }) {
+                            Icon(cat.icon, null, tint = NsColor.AccentLight, modifier = Modifier.size(30.dp))
                         }
                     }
                     items(apps) { app ->
@@ -122,7 +116,7 @@ fun StartMenu(
                     query = query,
                     apps = apps,
                     onResultOpened = onDismiss,
-                    onOpenFiles = onOpenFiles,
+                    onOpenFiles = { onOpenApp(LauncherApp.FileExplorer) },
                     modifier = Modifier.weight(1f),
                 )
             }

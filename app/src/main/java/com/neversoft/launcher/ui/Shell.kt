@@ -15,8 +15,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.neversoft.launcher.apps.AppRepository
 import com.neversoft.launcher.ui.apps.AboutApp
+import com.neversoft.launcher.ui.apps.CalculatorApp
+import com.neversoft.launcher.ui.apps.CalendarApp
+import com.neversoft.launcher.ui.apps.ClockApp
 import com.neversoft.launcher.ui.apps.FileExplorerApp
+import com.neversoft.launcher.ui.apps.MediaPlayerApp
+import com.neversoft.launcher.ui.apps.NotepadApp
+import com.neversoft.launcher.ui.apps.PaintApp
+import com.neversoft.launcher.ui.apps.PhotosApp
 import com.neversoft.launcher.ui.apps.SettingsApp
+import com.neversoft.launcher.ui.apps.StoreApp
+import com.neversoft.launcher.ui.apps.TaskManagerApp
+import com.neversoft.launcher.ui.apps.WeatherApp
 import com.neversoft.launcher.ui.window.AppWindow
 
 enum class Overlay { None, Start, QuickSettings, Notifications, TaskView, Widgets }
@@ -61,6 +71,16 @@ fun Shell() {
                         LauncherApp.Settings -> SettingsApp()
                         LauncherApp.About -> AboutApp()
                         LauncherApp.FileExplorer -> FileExplorerApp()
+                        LauncherApp.Notepad -> NotepadApp()
+                        LauncherApp.Calculator -> CalculatorApp()
+                        LauncherApp.Clock -> ClockApp()
+                        LauncherApp.Photos -> PhotosApp()
+                        LauncherApp.Calendar -> CalendarApp()
+                        LauncherApp.Weather -> WeatherApp()
+                        LauncherApp.Paint -> PaintApp()
+                        LauncherApp.TaskManager -> TaskManagerApp()
+                        LauncherApp.Store -> StoreApp()
+                        LauncherApp.MediaPlayer -> MediaPlayerApp()
                     }
                 }
             }
@@ -71,8 +91,7 @@ fun Shell() {
                 apps = apps,
                 onLaunch = { overlay = Overlay.None; AppRepository.launch(context, it) },
                 onCommandPrompt = { overlay = Overlay.None; AppRepository.launchTermux(context) },
-                onOpenSettings = { openApp(LauncherApp.Settings) },
-                onOpenFiles = { openApp(LauncherApp.FileExplorer) },
+                onOpenApp = { openApp(it) },
                 onDismiss = { overlay = Overlay.None },
             )
 

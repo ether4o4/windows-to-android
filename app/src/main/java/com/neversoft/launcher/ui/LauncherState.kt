@@ -14,6 +14,16 @@ enum class LauncherApp(val title: String) {
     Settings("Settings"),
     About("About this PC"),
     FileExplorer("File Explorer"),
+    Notepad("Notepad"),
+    Calculator("Calculator"),
+    Clock("Clock"),
+    Photos("Photos"),
+    Calendar("Calendar"),
+    Weather("Weather"),
+    Paint("Paint"),
+    TaskManager("Task Manager"),
+    Store("NeverSoft Store"),
+    MediaPlayer("Media Player"),
 }
 
 /**
