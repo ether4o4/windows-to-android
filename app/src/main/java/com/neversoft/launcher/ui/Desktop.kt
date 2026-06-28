@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
 import com.neversoft.launcher.Brand
+import com.neversoft.launcher.ui.components.AppIconTile
 import kotlin.math.roundToInt
 
 /** Desktop surface: top-left shortcuts + Fluent right-click (long-press) menu. */
@@ -66,11 +68,11 @@ fun Desktop(
             modifier = Modifier.padding(start = 12.dp, top = 36.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            DesktopIcon(Icons.Filled.Computer, "This PC", onClick = onOpenAbout)
-            DesktopIcon(Icons.Filled.FolderOpen, "File Explorer", onClick = onOpenFiles)
-            DesktopIcon(Icons.Filled.Settings, "Settings", onClick = onOpenSettings)
-            DesktopIcon(Icons.Filled.Delete, "Recycle Bin") {}
-            DesktopIcon(Icons.Filled.Terminal, "Command Prompt", onClick = onCommandPrompt)
+            DesktopIcon(Icons.Filled.Computer, "This PC", Color(0xFF4477AA), onClick = onOpenAbout)
+            DesktopIcon(Icons.Filled.FolderOpen, "File Explorer", Color(0xFFFFB300), onClick = onOpenFiles)
+            DesktopIcon(Icons.Filled.Settings, "Settings", Color(0xFF546E7A), onClick = onOpenSettings)
+            DesktopIcon(Icons.Filled.Delete, "Recycle Bin", Color(0xFF00897B)) {}
+            DesktopIcon(Icons.Filled.Terminal, "Command Prompt", Color(0xFF2B2B2B), onClick = onCommandPrompt)
         }
 
         // Windows-style activation watermark, rebranded.
@@ -82,13 +84,13 @@ fun Desktop(
         ) {
             Text(
                 Brand.NAME,
-                color = NsColor.Text.copy(alpha = 0.62f),
+                color = Color.White.copy(alpha = 0.62f),
                 fontSize = 15.sp,
                 lineHeight = 18.sp,
             )
             Text(
                 "${Brand.SHORT} Pro  ·  Build ${Brand.VERSION}",
-                color = NsColor.Text.copy(alpha = 0.42f),
+                color = Color.White.copy(alpha = 0.42f),
                 fontSize = 11.sp,
                 lineHeight = 14.sp,
             )
@@ -113,7 +115,7 @@ fun Desktop(
 }
 
 @Composable
-private fun DesktopIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun DesktopIcon(icon: ImageVector, label: String, color: Color, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(84.dp)
@@ -122,16 +124,11 @@ private fun DesktopIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
             .padding(vertical = 8.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = NsColor.AccentLight,
-            modifier = Modifier.height(NsDim.DesktopIcon),
-        )
+        AppIconTile(icon, color, NsDim.DesktopIcon)
         Spacer(Modifier.height(4.dp))
         Text(
             text = label,
-            color = NsColor.Text,
+            color = Color.White,
             fontSize = 12.sp,
             lineHeight = 14.sp,
             maxLines = 2,

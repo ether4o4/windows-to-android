@@ -2,6 +2,7 @@ package com.neversoft.launcher.apps
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -64,5 +65,45 @@ object AppRepository {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
         return true
+    }
+
+    // ---- Phone basics: open the user's default app via standard intents ----
+
+    private fun start(context: Context, intent: Intent, fallbackMsg: String) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(intent) }
+            .onFailure { Toast.makeText(context, fallbackMsg, Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun launchCategory(context: Context, category: String, fallbackMsg: String) {
+        start(
+            context,
+            Intent(Intent.ACTION_MAIN).addCategory(category),
+            fallbackMsg,
+        )
+    }
+
+    /** Phone / dialer. */
+    fun launchDialer(context: Context) =
+        start(context, Intent(Intent.ACTION_DIAL), "No phone app found")
+
+    /** Messages (default SMS app). */
+    fun launchMessaging(context: Context) {
+        val byCategory = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING)
+        byCategory.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (runCatching { context.startActivity(byCategory); true }.getOrDefault(false)) return
+        start(context, Intent(Intent.ACTION_VIEW, Uri.parse("sms:")), "No messaging app found")
+    }
+
+    /** Contacts / People. */
+    fun launchContacts(context: Context) =
+        launchCategory(context, Intent.CATEGORY_APP_CONTACTS, "No contacts app found")
+
+    /** Camera. */
+    fun launchCamera(context: Context) {
+        val cam = Intent("android.media.action.STILL_IMAGE_CAMERA")
+        cam.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (runCatching { context.startActivity(cam); true }.getOrDefault(false)) return
+        start(context, Intent("android.media.action.IMAGE_CAPTURE"), "No camera app found")
     }
 }

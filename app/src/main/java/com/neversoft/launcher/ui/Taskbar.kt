@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.neversoft.launcher.ui.components.AppIconTile
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
 import kotlinx.coroutines.delay
@@ -109,7 +110,7 @@ fun Taskbar(
                     }
                     windows.forEach { w ->
                         TaskbarButton(active = true, onClick = { onWindowClick(w) }) {
-                            Icon(iconForApp(w), w.title, tint = NsColor.Text, modifier = Modifier.size(GLYPH))
+                            AppIconTile(iconForApp(w), colorForApp(w), 26.dp)
                         }
                     }
                 }

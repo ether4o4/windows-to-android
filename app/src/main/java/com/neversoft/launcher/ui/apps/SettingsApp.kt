@@ -56,6 +56,13 @@ fun SettingsApp() {
         }
         Spacer(Modifier.height(20.dp))
 
+        SectionLabel("Mode")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SegButton("Dark", selected = NsColor.isDark) { NsColor.isDark = true }
+            SegButton("Light", selected = !NsColor.isDark) { NsColor.isDark = false }
+        }
+        Spacer(Modifier.height(20.dp))
+
         SectionLabel("Accent color")
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             AccentOptions.forEach { c ->

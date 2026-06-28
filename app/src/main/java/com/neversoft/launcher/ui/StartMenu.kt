@@ -24,10 +24,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,8 +50,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neversoft.launcher.Brand
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import com.neversoft.launcher.apps.AppEntry
+import com.neversoft.launcher.apps.AppRepository
 import com.neversoft.launcher.ui.components.AppGlyph
+import com.neversoft.launcher.ui.components.AppIconTile
 import com.neversoft.launcher.ui.modifier.acrylic
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
@@ -65,6 +71,7 @@ fun StartMenu(
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     // Full-screen scrim; tapping outside the panel dismisses.
     Box(
@@ -97,13 +104,33 @@ fun StartMenu(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     item {
+                        StartTile(label = "Phone", onClick = { onDismiss(); AppRepository.launchDialer(context) }) {
+                            AppIconTile(Icons.Filled.Call, Color(0xFF43A047), 40.dp)
+                        }
+                    }
+                    item {
+                        StartTile(label = "Messages", onClick = { onDismiss(); AppRepository.launchMessaging(context) }) {
+                            AppIconTile(Icons.Filled.Message, Color(0xFF1E88E5), 40.dp)
+                        }
+                    }
+                    item {
+                        StartTile(label = "Contacts", onClick = { onDismiss(); AppRepository.launchContacts(context) }) {
+                            AppIconTile(Icons.Filled.Contacts, Color(0xFF00897B), 40.dp)
+                        }
+                    }
+                    item {
+                        StartTile(label = "Camera", onClick = { onDismiss(); AppRepository.launchCamera(context) }) {
+                            AppIconTile(Icons.Filled.PhotoCamera, Color(0xFF455A64), 40.dp)
+                        }
+                    }
+                    item {
                         StartTile(label = "Command Prompt", onClick = onCommandPrompt) {
-                            Icon(Icons.Filled.Terminal, null, tint = LauncherState.accent, modifier = Modifier.size(30.dp))
+                            AppIconTile(Icons.Filled.Terminal, Color(0xFF2B2B2B), 40.dp)
                         }
                     }
                     items(InLauncherApps) { cat ->
                         StartTile(label = cat.app.title, onClick = { onOpenApp(cat.app) }) {
-                            Icon(cat.icon, null, tint = NsColor.AccentLight, modifier = Modifier.size(30.dp))
+                            AppIconTile(cat.icon, cat.color, 40.dp)
                         }
                     }
                     items(apps) { app ->
