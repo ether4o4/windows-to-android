@@ -57,10 +57,14 @@ jobs:
             for i in 1 2 3 4; do adb shell input tap 540 1520 || true; sleep 1; done
             sleep 2
             adb exec-out screencap -p > screenshots/03-desktop.png || true
-            # open Start (centre of the bottom taskbar)
-            adb shell input tap 470 2270 || true
-            sleep 2
+            # open Start (the blue grid icon, leftmost of the centred taskbar cluster)
+            adb shell input tap 300 2258 || true
+            sleep 3
             adb exec-out screencap -p > screenshots/04-start.png || true
+            # type into Spotlight search to show it live, then capture
+            adb shell input text "set" || true
+            sleep 2
+            adb exec-out screencap -p > screenshots/05-search.png || true
 
       - name: Commit screenshots
         run: |
