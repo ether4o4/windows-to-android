@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,6 +32,7 @@ val InLauncherApps: List<CatalogApp> = listOf(
     CatalogApp(LauncherApp.Weather, Icons.Filled.WbSunny, Color(0xFF039BE5)),
     CatalogApp(LauncherApp.Paint, Icons.Filled.Brush, Color(0xFFFB8C00)),
     CatalogApp(LauncherApp.MediaPlayer, Icons.Filled.MusicNote, Color(0xFF8E24AA)),
+    CatalogApp(LauncherApp.Terminal, Icons.Filled.Terminal, Color(0xFF22E0FF)),
     CatalogApp(LauncherApp.TaskManager, Icons.Filled.Speed, Color(0xFF43A047)),
     CatalogApp(LauncherApp.Store, Icons.Filled.Storefront, Color(0xFF1976D2)),
     CatalogApp(LauncherApp.Settings, Icons.Filled.Settings, Color(0xFF546E7A)),

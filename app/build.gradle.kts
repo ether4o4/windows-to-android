@@ -76,6 +76,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            // proot is exec'd from nativeLibraryDir at runtime, so the .so files
+            // must be extracted from the APK (not mapped) and given exec perms.
+            useLegacyPackaging = true
+        }
     }
 }
 

@@ -16,6 +16,9 @@
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
+    <!-- NeverSoft Shell: one-time Alpine rootfs download for the proot terminal. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- File Explorer (Ghost Key) — browse device storage. -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
