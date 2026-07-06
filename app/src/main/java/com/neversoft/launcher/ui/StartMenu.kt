@@ -26,11 +26,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -91,6 +96,22 @@ fun StartMenu(
                 .pointerInput(Unit) { detectTapGestures { /* consume taps on panel */ } }
                 .padding(20.dp),
         ) {
+            // Header: user identity + quick glyphs (settings / terminal).
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(34.dp).clip(CircleShape).background(LauncherState.accent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.AccountCircle, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(Brand.USER, color = NsColor.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.weight(1f))
+                HeaderGlyph(Icons.Filled.Settings, "Settings") { onOpenApp(LauncherApp.Settings) }
+                Spacer(Modifier.width(4.dp))
+                HeaderGlyph(Icons.Filled.Terminal, "Terminal", onCommandPrompt)
+            }
+            Spacer(Modifier.height(14.dp))
             SearchField(query) { query = it }
             Spacer(Modifier.height(16.dp))
 
@@ -153,10 +174,13 @@ fun StartMenu(
             HorizontalDivider(color = NsColor.Stroke)
             Spacer(Modifier.height(12.dp))
 
+            // Quick-launch bar (MVE-style slots) + power.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.AccountCircle, null, tint = NsColor.Text, modifier = Modifier.size(28.dp))
-                Spacer(Modifier.width(10.dp))
-                Text(Brand.USER, color = NsColor.Text, fontSize = 14.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QuickSlot(Icons.Filled.FolderOpen, "Files", Color(0xFFFFB300)) { onOpenApp(LauncherApp.FileExplorer) }
+                    QuickSlot(Icons.Filled.Terminal, "Terminal", Color(0xFF22E0FF), onCommandPrompt)
+                    QuickSlot(Icons.Filled.Settings, "Control Panel", Color(0xFF8A97A6)) { onOpenApp(LauncherApp.Settings) }
+                }
                 Spacer(Modifier.weight(1f))
                 Box(
                     modifier = Modifier
@@ -168,6 +192,33 @@ fun StartMenu(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HeaderGlyph(icon: ImageVector, desc: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(RoundedCornerShape(NsDim.RadiusControl))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Icon(icon, desc, tint = NsColor.TextSecondary, modifier = Modifier.size(18.dp)) }
+}
+
+@Composable
+private fun QuickSlot(icon: ImageVector, label: String, tint: Color, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(NsColor.ControlActive)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = NsColor.Text, fontSize = 11.sp)
     }
 }
 
