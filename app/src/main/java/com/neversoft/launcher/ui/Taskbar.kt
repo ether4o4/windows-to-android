@@ -48,6 +48,9 @@ import java.time.format.DateTimeFormatter
 private val GLYPH = 20.dp
 private val BTN = 38.dp
 
+/** Apps permanently pinned to the taskbar, always visible across the bottom. */
+private val PinnedApps = listOf(LauncherApp.FileExplorer, LauncherApp.Terminal)
+
 /**
  * Bottom edge-anchored acrylic taskbar (doctrine §1.4). Three non-overlapping
  * zones: weather/widgets (left) · Start/Search/Task view (centered) ·
@@ -67,6 +70,7 @@ fun Taskbar(
     onToggleWidgets: () -> Unit,
     windows: List<LauncherApp>,
     onWindowClick: (LauncherApp) -> Unit,
+    onLaunchApp: (LauncherApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val theme = LauncherState.launcherTheme
@@ -113,7 +117,16 @@ fun Taskbar(
                     TaskbarButton(active = taskViewActive, onClick = onToggleTaskView) {
                         Icon(Icons.Filled.ViewModule, "Task view", tint = NsColor.Text, modifier = Modifier.size(GLYPH))
                     }
-                    windows.forEach { w ->
+
+                    // Pinned permanent apps — always shown across the bottom.
+                    PinnedApps.forEach { app ->
+                        TaskbarButton(active = windows.contains(app), onClick = { onLaunchApp(app) }) {
+                            AppIconTile(iconForApp(app), colorForApp(app), 26.dp)
+                        }
+                    }
+
+                    // Running (non-pinned) windows.
+                    windows.filter { it !in PinnedApps }.forEach { w ->
                         TaskbarButton(active = true, onClick = { onWindowClick(w) }) {
                             AppIconTile(iconForApp(w), colorForApp(w), 26.dp)
                         }

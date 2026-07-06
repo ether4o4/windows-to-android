@@ -129,6 +129,7 @@ fun Shell() {
             onToggleWidgets = { toggle(Overlay.Widgets) },
             windows = windows.toList(),
             onWindowClick = { openApp(it) },
+            onLaunchApp = { openApp(it) },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
 
