@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- NeverSoft four-pane mark (flat, single accent — not Microsoft's tilted logo). -->
+    <path android:fillColor="#FF4CC2FF" android:pathData="M30,30 h20 v20 h-20 z" />
+    <path android:fillColor="#FF4CC2FF" android:pathData="M58,30 h20 v20 h-20 z" />
+    <path android:fillColor="#FF4CC2FF" android:pathData="M30,58 h20 v20 h-20 z" />
+    <path android:fillColor="#FF4CC2FF" android:pathData="M58,58 h20 v20 h-20 z" />
+</vector>

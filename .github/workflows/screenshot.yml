@@ -1,0 +1,78 @@
+name: Emulator screenshots
+
+# Boots an Android emulator, installs NeverSoft 11, launches it, and captures
+# real screenshots (lock -> sign-in -> desktop -> start), committing them back
+# to screenshots/ so they can be viewed. Trigger by bumping the SCREENSHOT file.
+
+on:
+  push:
+    paths: ["SCREENSHOT"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run emulator + capture
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          script: |
+            set -x
+            mkdir -p screenshots
+            ./gradlew installDebug --stacktrace
+            adb shell am start -n com.neversoft.launcher/.MainActivity || true
+            sleep 12
+            adb exec-out screencap -p > screenshots/01-lock.png || true
+            # lock -> sign-in (swipe up)
+            adb shell input swipe 540 1700 540 500 300 || true
+            sleep 2
+            adb exec-out screencap -p > screenshots/02-signin.png || true
+            # enter a 4-digit PIN (any 4 digits unlock) by tapping the keypad centre
+            for i in 1 2 3 4; do adb shell input tap 540 1520 || true; sleep 1; done
+            sleep 2
+            adb exec-out screencap -p > screenshots/03-desktop.png || true
+            # open Start (the blue grid icon, leftmost of the centred taskbar cluster)
+            adb shell input tap 300 2258 || true
+            sleep 3
+            adb exec-out screencap -p > screenshots/04-start.png || true
+            # focus the Spotlight search box (top of the Start menu) THEN type,
+            # so the device-search filters live, then capture
+            adb shell input tap 540 590 || true
+            sleep 1
+            adb shell input text "set" || true
+            sleep 3
+            adb exec-out screencap -p > screenshots/05-search.png || true
+
+      - name: Commit screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add screenshots/*.png 2>/dev/null || true
+          git commit -m "CI: emulator screenshots [skip ci]" || { echo "no screenshots produced"; exit 0; }
+          git push

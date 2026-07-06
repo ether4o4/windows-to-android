@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- NeverSoft accent (canonical Windows blue per §1.1). -->
+    <color name="ns_accent">#FF0078D4</color>
+    <color name="ic_launcher_background">#FF1C1C1C</color>
+    <color name="black">#FF000000</color>
+</resources>

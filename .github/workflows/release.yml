@@ -1,0 +1,93 @@
+name: Release APK
+
+# Publishes a GitHub Release with the APK attached. Release assets download
+# WITHOUT a GitHub login (public repo), unlike CI artifacts.
+#
+# Cut a release by bumping the RELEASE_VERSION file (its contents become the tag,
+# e.g. v0.1.0) and pushing — that's the controlled trigger. After this lands on
+# the default branch you can also use the "Run workflow" button (workflow_dispatch).
+#
+# Signing: if the repo has KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS /
+# KEY_PASSWORD secrets, the APK is signed with that release key. Otherwise it
+# falls back to the debug key (still installable).
+
+on:
+  push:
+    paths: ["RELEASE_VERSION"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v0.1.0"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode release keystore (if configured)
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "path=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"
+          else
+            echo "No KEYSTORE_BASE64 secret — falling back to the debug key."
+          fi
+
+      - name: Assemble release APK
+        env:
+          KEYSTORE_FILE: ${{ steps.keystore.outputs.path }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Stage APK
+        id: stage
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="$(tr -d ' \n\r\t' < RELEASE_VERSION)"; fi
+          mkdir -p out
+          SRC="$(ls app/build/outputs/apk/release/*.apk | head -n1)"
+          DEST="out/NeverSoft11-${TAG}.apk"
+          cp "$SRC" "$DEST"
+          echo "apk=$DEST" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.stage.outputs.tag }}
+          name: NeverSoft 11 ${{ steps.stage.outputs.tag }}
+          body: |
+            NeverSoft 11 — Windows-11-style Android launcher (installable APK).
+
+            Install: download the `.apk` below, then `adb install -r <file>` (or tap
+            it on-device with "install unknown apps" enabled). Set as default Home:
+            Settings → Apps → Default apps → Home app → NeverSoft 11.
+
+            Built from `${{ github.sha }}`. This is a CI build; run the on-device
+            fidelity pass (FS ≥ 95) yourself per the doctrine.
+          files: ${{ steps.stage.outputs.apk }}
+          generate_release_notes: true
