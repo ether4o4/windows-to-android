@@ -6,8 +6,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import com.neversoft.launcher.ui.theme.LauncherTheme
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
+import com.neversoft.launcher.ui.theme.resolveLauncherTheme
 
 /** Our own in-launcher apps that open as draggable windows. */
 enum class LauncherApp(val title: String) {
@@ -35,6 +37,11 @@ object LauncherState {
     var accent by mutableStateOf(NsColor.Accent)
     var wallpaperIndex by mutableStateOf(0)
     var taskbarSmall by mutableStateOf(false)
+
+    /** Active launcher surface theme (MVE-style) — tints taskbar/Start/flyouts. */
+    var launcherThemeId by mutableStateOf("glass")
+
+    val launcherTheme: LauncherTheme get() = resolveLauncherTheme(launcherThemeId)
 
     val taskbarHeight: Dp
         get() = if (taskbarSmall) NsDim.TaskbarHeightSmall else NsDim.TaskbarHeight

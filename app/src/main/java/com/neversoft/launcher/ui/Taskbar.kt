@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.neversoft.launcher.ui.components.AppIconTile
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
+import com.neversoft.launcher.ui.theme.surfaceBrush
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -68,11 +69,15 @@ fun Taskbar(
     onWindowClick: (LauncherApp) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val theme = LauncherState.launcherTheme
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(LauncherState.taskbarHeight)
-            .background(NsColor.AcrylicTaskbar),
+            .then(
+                if (theme.glass) Modifier.background(NsColor.AcrylicTaskbar)
+                else Modifier.background(theme.surfaceBrush()),
+            ),
     ) {
         Box(
             Modifier
