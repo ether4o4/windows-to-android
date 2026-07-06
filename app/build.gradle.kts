@@ -76,6 +76,17 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            // proot is exec'd from nativeLibraryDir at runtime, so the .so files
+            // must be extracted from the APK (not mapped) and given exec perms.
+            useLegacyPackaging = true
+        }
+    }
+
+    // Alpine minirootfs assets (assets/rootfs/*.tar.gz) are already gzip; don't
+    // let aapt double-compress them (would prevent our streaming read).
+    androidResources {
+        noCompress += listOf("gz", "tar.gz")
     }
 }
 

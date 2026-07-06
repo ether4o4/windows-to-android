@@ -24,6 +24,7 @@ enum class LauncherApp(val title: String) {
     TaskManager("Task Manager"),
     Store("NeverSoft Store"),
     MediaPlayer("Media Player"),
+    Terminal("NeverSoft Shell"),
 }
 
 /**

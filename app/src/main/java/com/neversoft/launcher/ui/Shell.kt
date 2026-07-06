@@ -26,6 +26,7 @@ import com.neversoft.launcher.ui.apps.PhotosApp
 import com.neversoft.launcher.ui.apps.SettingsApp
 import com.neversoft.launcher.ui.apps.StoreApp
 import com.neversoft.launcher.ui.apps.TaskManagerApp
+import com.neversoft.launcher.ui.apps.TerminalApp
 import com.neversoft.launcher.ui.apps.WeatherApp
 import com.neversoft.launcher.ui.window.AppWindow
 
@@ -61,13 +62,17 @@ fun Shell() {
             onOpenSettings = { openApp(LauncherApp.Settings) },
             onOpenAbout = { openApp(LauncherApp.About) },
             onOpenFiles = { openApp(LauncherApp.FileExplorer) },
-            onCommandPrompt = { AppRepository.launchTermux(context) },
+            onCommandPrompt = { openApp(LauncherApp.Terminal) },
         )
 
         // Our own in-launcher app windows, drawn in z-order.
         windows.forEach { app ->
             key(app) {
-                AppWindow(title = app.title, onClose = { windows.remove(app) }) {
+                AppWindow(
+                    title = app.title,
+                    onClose = { windows.remove(app) },
+                    holo = app == LauncherApp.Terminal,
+                ) {
                     when (app) {
                         LauncherApp.Settings -> SettingsApp()
                         LauncherApp.About -> AboutApp()
@@ -82,6 +87,7 @@ fun Shell() {
                         LauncherApp.TaskManager -> TaskManagerApp()
                         LauncherApp.Store -> StoreApp()
                         LauncherApp.MediaPlayer -> MediaPlayerApp()
+                        LauncherApp.Terminal -> TerminalApp()
                     }
                 }
             }
@@ -91,7 +97,7 @@ fun Shell() {
             Overlay.Start -> StartMenu(
                 apps = apps,
                 onLaunch = { overlay = Overlay.None; AppRepository.launch(context, it) },
-                onCommandPrompt = { overlay = Overlay.None; AppRepository.launchTermux(context) },
+                onCommandPrompt = { overlay = Overlay.None; openApp(LauncherApp.Terminal) },
                 onOpenApp = { openApp(it) },
                 onLock = { overlay = Overlay.None; locked = true },
                 onDismiss = { overlay = Overlay.None },

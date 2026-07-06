@@ -35,6 +35,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
@@ -72,6 +74,7 @@ private fun geomFor(zone: SnapZone, w: Dp, h: Dp): Geom? = when (zone) {
 fun AppWindow(
     title: String,
     onClose: () -> Unit,
+    holo: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     var snap by remember { mutableStateOf(SnapZone.None) }
@@ -91,6 +94,16 @@ fun AppWindow(
         val bodyH = geom?.h ?: defaultH
         val align = if (geom == null) Alignment.Center else Alignment.TopStart
 
+        val shape = RoundedCornerShape(if (holo) 12.dp else NsDim.RadiusOverlay)
+        // Holographic window: see-through screen with a darker gradient frame at
+        // top/bottom and a glowing edge; normal windows keep the acrylic look.
+        val bg = if (holo) {
+            Brush.verticalGradient(
+                listOf(NsColor.HoloFrameTop, Color.Transparent, Color.Transparent, NsColor.HoloFrameBottom),
+            )
+        } else {
+            Brush.verticalGradient(listOf(NsColor.Solid, NsColor.Solid))
+        }
         Column(
             modifier = Modifier
                 .align(align)
@@ -99,16 +112,16 @@ fun AppWindow(
                     else Modifier.offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) },
                 )
                 .width(winW)
-                .clip(RoundedCornerShape(NsDim.RadiusOverlay))
-                .background(NsColor.Solid)
-                .border(1.dp, NsColor.StrokeStrong, RoundedCornerShape(NsDim.RadiusOverlay)),
+                .clip(shape)
+                .background(bg)
+                .border(if (holo) 1.5.dp else 1.dp, if (holo) NsColor.HoloBorder else NsColor.StrokeStrong, shape),
         ) {
             // Title bar.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(34.dp)
-                    .background(NsColor.Mica)
+                    .background(if (holo) NsColor.HoloFrameTop else NsColor.Mica)
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragStart = { snap = SnapZone.None },
@@ -120,7 +133,7 @@ fun AppWindow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Spacer(Modifier.width(12.dp))
-                Text(title, color = NsColor.TextSecondary, fontSize = 12.sp)
+                Text(title, color = if (holo) NsColor.HoloAccent else NsColor.TextSecondary, fontSize = 12.sp)
                 Spacer(Modifier.weight(1f))
                 CaptionButton(Icons.Filled.Remove, "Minimize") { collapsed = !collapsed }
                 // Maximize: tap toggles full, long-press opens Snap Layouts.

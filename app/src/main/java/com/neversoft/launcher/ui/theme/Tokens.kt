@@ -54,6 +54,18 @@ object NsColor {
     val TermFg: Color get() = Color(0xFFCCCCCC)
 
     val Danger: Color get() = pick(Color(0xFFF1707A), Color(0xFFC42B1C))
+
+    // Holographic shell — a see-through terminal that tracks the theme. The body
+    // is translucent so the wallpaper glows through; the frame is a darker
+    // gradient; text glows in cyan (dark) / teal (light).
+    val HoloAccent: Color get() = pick(Color(0xFF39E7FF), Color(0xFF0091B3))
+    val HoloText: Color get() = pick(Color(0xFFDFFBFF), Color(0xFF07323B))
+    val HoloDim: Color get() = pick(Color(0x9985E6F5), Color(0x99356E7A))
+    val HoloError: Color get() = pick(Color(0xFFFF8A80), Color(0xFFC42B1C))
+    val HoloBody: Color get() = pick(Color(0x2600131C), Color(0x14BFF3FF)) // translucent screen
+    val HoloBorder: Color get() = pick(Color(0x8039E7FF), Color(0x800091B3)) // glowing edge
+    val HoloFrameTop: Color get() = pick(Color(0xE60A1622), Color(0xE6D6F3FA))
+    val HoloFrameBottom: Color get() = pick(Color(0xF2050B12), Color(0xF2E8FAFE))
 }
 
 /** Geometry tokens (theme-independent). */
