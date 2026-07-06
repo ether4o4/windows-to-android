@@ -82,6 +82,12 @@ android {
             useLegacyPackaging = true
         }
     }
+
+    // Alpine minirootfs assets (assets/rootfs/*.tar.gz) are already gzip; don't
+    // let aapt double-compress them (would prevent our streaming read).
+    androidResources {
+        noCompress += listOf("gz", "tar.gz")
+    }
 }
 
 dependencies {

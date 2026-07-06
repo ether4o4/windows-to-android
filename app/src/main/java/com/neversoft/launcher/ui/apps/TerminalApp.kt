@@ -92,16 +92,15 @@ private fun SetupPanel(state: SandboxState) {
         when (state) {
             is SandboxState.NotInstalled -> {
                 Text(
-                    "First run installs a small Linux image (~3 MB) so the shell " +
-                        "works offline afterward.",
+                    "First launch unpacks the bundled Linux image. No network required.",
                     color = NsColor.HoloDim, fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
                 )
                 Spacer(Modifier.height(16.dp))
-                HoloButton("Initialize") { NeverSoftSandbox.setup() }
+                HoloButton("Start shell") { NeverSoftSandbox.setup() }
             }
             is SandboxState.Downloading -> {
-                Text("Downloading Linux image…", color = NsColor.HoloText, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                Text("Unpacking Linux image…", color = NsColor.HoloText, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 Spacer(Modifier.height(12.dp))
                 LinearProgressIndicator(
                     progress = { state.progress.coerceIn(0f, 1f) },

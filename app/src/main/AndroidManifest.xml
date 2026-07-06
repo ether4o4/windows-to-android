@@ -16,7 +16,9 @@
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
-    <!-- NeverSoft Shell: one-time Alpine rootfs download for the proot terminal. -->
+    <!-- NeverSoft Shell: `apk add` etc. reach Alpine mirrors when online. The
+         Linux rootfs itself is bundled in the APK, so the shell works with
+         NO network. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- File Explorer (Ghost Key) — browse device storage. -->

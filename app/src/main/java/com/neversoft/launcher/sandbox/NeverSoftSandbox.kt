@@ -6,13 +6,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Self-contained Alpine-on-proot Linux shell for NeverSoft 11, ported from the
- * MorsVitaEst sandbox. First use downloads a ~3 MB Alpine rootfs; after that it
- * runs offline. State is Compose-observable so the terminal UI reacts to setup
- * progress. Commands run one-per-invocation with a tracked working directory
- * (a persistent PTY is a future upgrade — this covers `cd` + line output).
+ * MorsVitaEst sandbox. The Alpine rootfs is BUNDLED IN THE APK (assets/rootfs/
+ * <arch>.tar.gz); first launch just extracts it. Zero network, no separate
+ * install. State is Compose-observable so the terminal UI reacts to progress.
+ * Commands run one-per-invocation with a tracked working directory (`cd`
+ * persists between commands).
  */
 object NeverSoftSandbox {
 
@@ -20,7 +22,7 @@ object NeverSoftSandbox {
         private set
 
     private var appContext: Context? = null
-    private val downloader = RootfsDownloader()
+    private val rootfs = RootfsDownloader() // now used only for tar extraction helpers
 
     @Volatile
     var cwd: String = "/root"
@@ -101,34 +103,54 @@ object NeverSoftSandbox {
 
         val rootfsDir = File(sandboxDir, "rootfs")
         if (!rootfsDir.isDirectory) {
+            // Rootfs is bundled in the APK — copy from assets, then extract.
+            // ~11 MB across three arches; the AGP asset packer keeps them
+            // compressed on disk so the APK grows by ~11 MB total.
+            state = SandboxState.Downloading(0f)
             val tarGz = File(sandboxDir, "rootfs.tar.gz")
             try {
-                state = SandboxState.Downloading(0f)
-                downloader.download(arch, tarGz) { p -> state = SandboxState.Downloading(p) }
+                copyAssetRootfs(arch, tarGz) { p -> state = SandboxState.Downloading(p) }
                 state = SandboxState.Extracting
-                downloader.extractTarGz(tarGz, rootfsDir)
+                rootfs.extractTarGz(tarGz, rootfsDir)
             } finally {
                 tarGz.delete()
             }
         }
 
         state = SandboxState.Configuring("Configuring…")
-        downloader.makeWritable(rootfsDir)
-        downloader.writeResolvConf(rootfsDir)
-
-        val executor = createExecutor()
-        var updated = false
-        for (mirror in downloader.mirrors) {
-            downloader.writeRepositories(rootfsDir, mirror)
-            val result = executor.execute("apk update", timeoutSeconds = 60)
-            if (result["success"] as? Boolean == true) { updated = true; break }
-        }
-        // apk update is a nice-to-have (lets `apk add` work); a raw shell is
-        // usable without it, so don't hard-fail the whole install if it can't
-        // reach a mirror — just land Ready.
+        rootfs.makeWritable(rootfsDir)
+        // Seed a working /etc/resolv.conf and repository list so `apk add` can
+        // reach mirrors if the device is online (optional; a raw shell works
+        // without it).
+        rootfs.writeResolvConf(rootfsDir)
+        rootfs.writeRepositories(rootfsDir, rootfs.mirrors.first())
         state = SandboxState.Ready
-        if (!updated) {
-            // leave a breadcrumb; not fatal
+    }
+
+    private fun copyAssetRootfs(arch: String, target: File, onProgress: (Float) -> Unit) {
+        val am = ctx.assets
+        val available = am.list("rootfs")?.toList().orEmpty()
+        val actual = when {
+            available.contains("$arch.tar.gz") -> "rootfs/$arch.tar.gz"
+            available.isNotEmpty() -> "rootfs/${available.first()}"
+            else -> throw IllegalStateException(
+                "bundled rootfs missing from APK (looked in assets/rootfs)",
+            )
+        }
+        // ~3-4 MB — extraction is the slow leg, not this copy. Use a coarse
+        // progress bar based on bytes written vs an assumed 4 MB ceiling.
+        val estimatedTotal = 4L * 1024L * 1024L
+        FileOutputStream(target).use { out ->
+            am.open(actual).use { input ->
+                val buf = ByteArray(64 * 1024)
+                var done = 0L
+                var n: Int
+                while (input.read(buf).also { n = it } >= 0) {
+                    out.write(buf, 0, n)
+                    done += n
+                    onProgress((done.toFloat() / estimatedTotal).coerceAtMost(1f))
+                }
+            }
         }
     }
 
