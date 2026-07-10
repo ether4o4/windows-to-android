@@ -39,6 +39,7 @@ fun Shell() {
     val apps = remember { AppRepository.loadApps(context) }
     var overlay by remember { mutableStateOf(Overlay.None) }
     var locked by remember { mutableStateOf(true) } // boot into the lock screen
+    var showSplash by remember { mutableStateOf(true) } // "NeverSoft Services" boot splash
     val windows = remember { mutableStateListOf<LauncherApp>() }
 
     fun openApp(app: LauncherApp) {
@@ -136,6 +137,11 @@ fun Shell() {
         // Lock / boot screen sits on top of everything.
         if (locked) {
             LockScreen(onUnlock = { locked = false })
+        }
+
+        // "NeverSoft Services" splash flashes over everything at boot, then fades.
+        if (showSplash) {
+            NeverSoftSplash(onDone = { showSplash = false })
         }
     }
 }
