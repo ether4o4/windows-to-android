@@ -3,6 +3,7 @@ package com.neversoft.launcher.ui.apps
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +54,8 @@ import com.neversoft.launcher.ui.InLauncherApps
 import com.neversoft.launcher.ui.LauncherState
 import com.neversoft.launcher.ui.Wallpapers
 import com.neversoft.launcher.ui.components.AppIconTile
+import com.neversoft.launcher.ui.theme.LauncherTheme
+import com.neversoft.launcher.ui.theme.LauncherThemes
 import com.neversoft.launcher.ui.theme.NsColor
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -140,6 +143,20 @@ private fun NavItem(page: SettingsPage, selected: Boolean, onClick: () -> Unit) 
 @Composable
 private fun PersonalizationPage() {
     PageTitle("Personalization")
+    SectionLabel("Theme")
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LauncherThemes.forEach { t ->
+            ThemeSwatch(t, selected = t.id == LauncherState.launcherThemeId) {
+                LauncherState.launcherThemeId = t.id
+                // Flip content mode so text stays readable on the chosen surface.
+                NsColor.isDark = !t.isLight
+            }
+        }
+    }
+    Spacer(Modifier.height(20.dp))
     SectionLabel("Background")
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Wallpapers.forEachIndexed { i, brush ->
@@ -312,6 +329,31 @@ private fun WallpaperThumb(brush: Brush, selected: Boolean, onClick: () -> Unit)
             )
             .clickable(onClick = onClick),
     )
+}
+
+@Composable
+private fun ThemeSwatch(theme: LauncherTheme, selected: Boolean, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val preview = if (theme.glass) {
+            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.10f)))
+        } else {
+            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.22f), theme.panel))
+        }
+        Box(
+            modifier = Modifier
+                .size(width = 54.dp, height = 36.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(preview)
+                .border(
+                    width = if (selected) 2.dp else 1.dp,
+                    color = if (selected) LauncherState.accent else NsColor.Stroke,
+                    shape = RoundedCornerShape(6.dp),
+                )
+                .clickable(onClick = onClick),
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(theme.label, color = NsColor.TextSecondary, fontSize = 10.sp, maxLines = 1)
+    }
 }
 
 @Composable

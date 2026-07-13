@@ -13,22 +13,28 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.neversoft.launcher.ui.LauncherState
 import com.neversoft.launcher.ui.theme.NsColor
+import com.neversoft.launcher.ui.theme.surfaceBrush
 
 /**
  * Fluent acrylic surface (doctrine §1.2). Over the gradient wallpaper a
  * translucent tint + hairline stroke already reads as frosted glass; for a
- * photo wallpaper, enable true backdrop blur on-device (see [blurLayer] and the
- * README note — stock Compose has no first-class backdrop blur).
+ * photo wallpaper, enable true backdrop blur on-device (see [blurLayer]).
+ *
+ * When the user picks an MVE-style launcher theme (anything but "Glass"), every
+ * acrylic surface — taskbar, Start menu, flyouts — switches to that theme's
+ * tinted surface brush, so one setting recolors the whole shell. "Glass" keeps
+ * the per-tier Fluent tints passed in [tint].
  */
 fun Modifier.acrylic(
     tint: Color = NsColor.AcrylicFlyout,
     radius: Dp = 8.dp,
     stroke: Boolean = true,
 ): Modifier {
-    var m: Modifier = this
-        .clip(RoundedCornerShape(radius))
-        .background(tint)
+    val theme = LauncherState.launcherTheme
+    var m: Modifier = this.clip(RoundedCornerShape(radius))
+    m = if (theme.glass) m.background(tint) else m.background(theme.surfaceBrush())
     if (stroke) {
         m = m.border(1.dp, NsColor.Stroke, RoundedCornerShape(radius))
     }

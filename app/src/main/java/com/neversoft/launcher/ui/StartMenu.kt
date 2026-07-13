@@ -1,5 +1,7 @@
 package com.neversoft.launcher.ui
 
+import android.app.usage.UsageStatsManager
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,14 +25,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Contacts
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -42,25 +42,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.neversoft.launcher.Brand
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import com.neversoft.launcher.apps.AppEntry
-import com.neversoft.launcher.apps.AppRepository
 import com.neversoft.launcher.ui.components.AppGlyph
 import com.neversoft.launcher.ui.components.AppIconTile
 import com.neversoft.launcher.ui.modifier.acrylic
 import com.neversoft.launcher.ui.theme.NsColor
 import com.neversoft.launcher.ui.theme.NsDim
 
-/** Centered acrylic Start menu above the taskbar (doctrine §1.4). */
+private const val GRID_COLS = 4
+private const val MOST_USED_CAP = 16 // 4 rows × 4 cols
+
+/**
+ * Windows-11-style Start menu (spec §8): Spotlight-backed search on top, a
+ * "Most used" 4×4 app grid with a "See all" expansion, and a permanent bottom
+ * cluster (Photos · Music · Files · Control Center). No category boxes.
+ */
 @Composable
 fun StartMenu(
     apps: List<AppEntry>,
@@ -71,9 +78,10 @@ fun StartMenu(
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    var seeAll by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val orderedApps = remember(apps) { orderByUsage(context, apps) }
 
-    // Full-screen scrim; tapping outside the panel dismisses.
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -86,54 +94,48 @@ fun StartMenu(
                 .padding(bottom = NsDim.TaskbarHeight + 10.dp)
                 .widthIn(max = 640.dp)
                 .fillMaxWidth(0.97f)
-                .heightIn(max = 620.dp)
+                .heightIn(max = 640.dp)
                 .acrylic(tint = NsColor.AcrylicStart, radius = NsDim.RadiusOverlay)
-                .pointerInput(Unit) { detectTapGestures { /* consume taps on panel */ } }
+                .pointerInput(Unit) { detectTapGestures { /* consume */ } }
                 .padding(20.dp),
         ) {
             SearchField(query) { query = it }
             Spacer(Modifier.height(16.dp))
 
             if (query.isBlank()) {
-                Text("Pinned", color = NsColor.TextSecondary, fontSize = 13.sp)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Most used", color = NsColor.TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        if (seeAll) "Show less ‹" else "See all ›",
+                        color = NsColor.AccentLight,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(NsDim.RadiusControl))
+                            .clickable { seeAll = !seeAll }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
                 Spacer(Modifier.height(10.dp))
+
+                // Built-in shell apps first, then most-used installed apps.
+                val installedShown = if (seeAll) {
+                    orderedApps
+                } else {
+                    orderedApps.take((MOST_USED_CAP - InLauncherApps.size).coerceAtLeast(4))
+                }
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(6),
+                    columns = GridCells.Fixed(GRID_COLS),
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    item {
-                        StartTile(label = "Phone", onClick = { onDismiss(); AppRepository.launchDialer(context) }) {
-                            AppIconTile(Icons.Filled.Call, Color(0xFF43A047), 40.dp)
-                        }
-                    }
-                    item {
-                        StartTile(label = "Messages", onClick = { onDismiss(); AppRepository.launchMessaging(context) }) {
-                            AppIconTile(Icons.Filled.Message, Color(0xFF1E88E5), 40.dp)
-                        }
-                    }
-                    item {
-                        StartTile(label = "Contacts", onClick = { onDismiss(); AppRepository.launchContacts(context) }) {
-                            AppIconTile(Icons.Filled.Contacts, Color(0xFF00897B), 40.dp)
-                        }
-                    }
-                    item {
-                        StartTile(label = "Camera", onClick = { onDismiss(); AppRepository.launchCamera(context) }) {
-                            AppIconTile(Icons.Filled.PhotoCamera, Color(0xFF455A64), 40.dp)
-                        }
-                    }
-                    item {
-                        StartTile(label = "Command Prompt", onClick = onCommandPrompt) {
-                            AppIconTile(Icons.Filled.Terminal, Color(0xFF2B2B2B), 40.dp)
-                        }
-                    }
                     items(InLauncherApps) { cat ->
                         StartTile(label = cat.app.title, onClick = { onOpenApp(cat.app) }) {
                             AppIconTile(cat.icon, cat.color, 40.dp)
                         }
                     }
-                    items(apps) { app ->
+                    items(installedShown) { app ->
                         StartTile(label = app.label, onClick = { onLaunch(app.packageName) }) {
                             AppGlyph(app, size = 34.dp)
                         }
@@ -153,10 +155,14 @@ fun StartMenu(
             HorizontalDivider(color = NsColor.Stroke)
             Spacer(Modifier.height(12.dp))
 
+            // Permanent bottom cluster (spec §4.2): Photos · Music · Files · Control Center.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.AccountCircle, null, tint = NsColor.Text, modifier = Modifier.size(28.dp))
-                Spacer(Modifier.width(10.dp))
-                Text(Brand.USER, color = NsColor.Text, fontSize = 14.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ClusterSlot(Icons.Filled.Photo, "Photos", Color(0xFFD81B60)) { onOpenApp(LauncherApp.Photos) }
+                    ClusterSlot(Icons.Filled.MusicNote, "Music", Color(0xFF8E24AA)) { onOpenApp(LauncherApp.MediaPlayer) }
+                    ClusterSlot(Icons.Filled.FolderOpen, "Files", Color(0xFFFFB300)) { onOpenApp(LauncherApp.FileExplorer) }
+                    ClusterSlot(Icons.Filled.Settings, "Control Center", Color(0xFF8A97A6)) { onOpenApp(LauncherApp.Settings) }
+                }
                 Spacer(Modifier.weight(1f))
                 Box(
                     modifier = Modifier
@@ -194,6 +200,22 @@ private fun StartTile(label: String, onClick: () -> Unit, icon: @Composable () -
 }
 
 @Composable
+private fun ClusterSlot(icon: ImageVector, label: String, tint: Color, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(NsColor.ControlActive)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = NsColor.Text, fontSize = 11.sp)
+    }
+}
+
+@Composable
 private fun SearchField(value: String, onChange: (String) -> Unit) {
     Row(
         modifier = Modifier
@@ -209,7 +231,7 @@ private fun SearchField(value: String, onChange: (String) -> Unit) {
         Box(Modifier.weight(1f)) {
             if (value.isEmpty()) {
                 Text(
-                    "Search for apps, settings, and documents",
+                    "Search apps, settings, documents",
                     color = NsColor.TextTertiary,
                     fontSize = 13.sp,
                     maxLines = 1,
@@ -226,4 +248,27 @@ private fun SearchField(value: String, onChange: (String) -> Unit) {
             )
         }
     }
+}
+
+/**
+ * Order installed apps by recent foreground time (needs Usage Access; granted
+ * via Settings). Degrades gracefully to the given order when unavailable.
+ */
+private fun orderByUsage(context: Context, apps: List<AppEntry>): List<AppEntry> = try {
+    val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+    if (usm == null) {
+        apps
+    } else {
+        val end = System.currentTimeMillis()
+        val begin = end - 7L * 24 * 60 * 60 * 1000
+        val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, begin, end)
+        val byPkg = HashMap<String, Long>()
+        stats?.forEach { s ->
+            byPkg[s.packageName] = (byPkg[s.packageName] ?: 0L) + s.totalTimeInForeground
+        }
+        if (byPkg.isEmpty()) apps
+        else apps.sortedByDescending { byPkg[it.packageName] ?: 0L }
+    }
+} catch (_: Exception) {
+    apps
 }
