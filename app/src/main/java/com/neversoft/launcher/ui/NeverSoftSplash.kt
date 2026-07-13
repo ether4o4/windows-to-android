@@ -38,11 +38,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.neversoft.launcher.R
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -58,7 +60,10 @@ private val NsGold = Color(0xFFE8C268)
 private val NsMuted = Color(0xFF7A5A5C)
 private val NsRedSoft = Color(0x10FF1F2E)
 
-private val Mono = FontFamily.Monospace
+// Bundled brand fonts (Google Fonts, OFL): terminal mono, display, condensed.
+private val Mono = FontFamily(Font(R.font.share_tech_mono))
+private val Display = FontFamily(Font(R.font.archivo_black))
+private val Cond = FontFamily(Font(R.font.oswald))
 
 private data class BootStage(val at: Int, val label: String, val sub: String)
 
@@ -197,7 +202,7 @@ private fun TerminalPanel(modifier: Modifier, pct: Int, stage: BootStage, blink:
             Text(
                 "INITIALIZING SERVICES",
                 color = NsWhite,
-                fontFamily = FontFamily.SansSerif,
+                fontFamily = Cond,
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
                 letterSpacing = 2.sp,
@@ -280,7 +285,7 @@ private fun Wordmark() {
             "NeverSoft",
             modifier = base.offset(x = (-3).dp, y = 1.dp),
             color = NsRed,
-            fontFamily = FontFamily.SansSerif,
+            fontFamily = Display,
             fontWeight = FontWeight.Black,
             fontSize = 46.sp,
             maxLines = 1,
@@ -289,7 +294,7 @@ private fun Wordmark() {
             "NeverSoft",
             modifier = base.offset(x = 3.dp, y = (-1).dp),
             color = NsGold,
-            fontFamily = FontFamily.SansSerif,
+            fontFamily = Display,
             fontWeight = FontWeight.Black,
             fontSize = 46.sp,
             maxLines = 1,
@@ -297,7 +302,7 @@ private fun Wordmark() {
         Text(
             "NeverSoft",
             color = NsWhite,
-            fontFamily = FontFamily.SansSerif,
+            fontFamily = Display,
             fontWeight = FontWeight.Black,
             fontSize = 46.sp,
             maxLines = 1,
@@ -307,7 +312,7 @@ private fun Wordmark() {
     Text(
         "SERVICES",
         color = NsGold,
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = Cond,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         letterSpacing = 14.sp,
